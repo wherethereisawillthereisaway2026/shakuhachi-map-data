@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>車中泊マップ - 統合版</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚐</text></svg>">
+<style>
+#map{height:100vh;width:100%;}
+body{margin:0;padding:0;font-family:sans-serif;}
+
+/* PC版パネル（左上） */
+.fp{position:fixed;top:10px;left:10px;z-index:1000;background:#fff;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.25);padding:8px;width:400px;box-sizing:border-box;max-height:calc(100vh - 80px);overflow-y:auto;}
+
+/* スマホボトムシート */
+.bs-wrap{
+  position:fixed;bottom:0;left:0;right:0;z-index:1000;
+  display:flex;
+  flex-direction:column;
+  max-height:70vh;
+  pointer-events:none;
+}
+.bs-handle{
+  pointer-events:all;
+  background:#fff;
+  border-radius:12px 12px 0 0;
+  box-shadow:0 -2px 8px rgba(0,0,0,.15);
+  padding:12px;
+}
+.bs-handle-bar{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 8px;}
+.bs-handle-row{display:flex;align-items:center;gap:8px;}
+.bs-title{margin:0;flex:1;font-size:16px;font-weight:bold;color:#333;}
+.bs-top-btn{padding:6px 8px;border:1.5px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:13px;font-weight:bold;color:#666;transition:all .15s;flex-shrink:0;}
+.bs-top-btn:hover{background:#f5f5f5;}
+
+.bs-body{
+  pointer-events:all;
+  background:#fff;
+  overflow-y:auto;
+  box-shadow:0 -2px 8px rgba(0,0,0,.1);
+  padding:12px;
+  transition:max-height .3s ease;
+  flex:1;
+}
+.bs-body.collapsed{max-height:0;overflow:hidden;padding:0 12px;}
+
+/* 共通スタイル */
+.category-section{margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px;}
+.category-title{font-size:13px;font-weight:bold;color:#333;margin-bottom:6px;display:flex;align-items:center;}
+.category-icon{margin-right:4px;font-size:16px;}
+
+.filter-label{font-size:10px;font-weight:bold;color:#999;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
+.filter-row{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;}
+.filter-btn{flex:1;min-width:0;padding:6px 4px;border:1.5px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:11px;font-weight:bold;text-align:center;color:#666;transition:all .15s;}
+.filter-btn:hover{background:#f5f5f5;}
+.filter-btn.on{background:#B3E5FC;border-color:#0277BD;color:#0277BD;}
+
+/* 2行表示ボタン */
+.filter-btn-dual{padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;}
+.filter-btn-dual:hover{background:#f5f5f5;}
+.filter-btn-dual.on{background:#B3E5FC;border-color:#0277BD;color:#0277BD;}
+
+/* HS グリッドボタン */
+.hs-grid-container{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px 0;margin-bottom:0;border-bottom:none;}
+.hs-grid-btn{padding:6px 4px;border:1.5px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:11px;font-weight:bold;text-align:center;color:#666;transition:all .15s;width:100%;}
+.hs-grid-btn:hover{background:#f5f5f5;}
+.hs-grid-btn.on{background:#B3E5FC;border-color:#0277BD;color:#0277BD;}
+
+.toggle-btn{padding:6px 8px;border:1.5px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:11px;font-weight:bold;color:#666;transition:all .15s;flex:1;}
+.toggle-btn:hover{background:#f5f5f5;}
+.toggle-btn.on{background:#66BB6A;border-color:#2E7D32;color:#fff;}
+
+.top-btn-row{display:flex;gap:6px;margin-bottom:8px;align-items:center;width:fit-content;}
+
+.gm-svpc, .gm-style-cc, button[title="キーボード ショートカット"], .gm-bundled-control, .gm-bundled-control-on-bottom{display:none!important;}
+.gm-ui-hover-effect{display:none!important;}
+
+.popup-link{color:#1a73e8;text-decoration:none;font-weight:bold;}
+.popup-link:hover{text-decoration:underline;}
+
+.info-popup{line-height:1.6;min-width:240px;font-size:12px;}
+.info-popup .title{font-size:13px;font-weight:bold;margin-bottom:4px;color:#1a73e8;}
+.info-popup .subtitle{color:#666;margin-bottom:6px;font-size:11px;}
+.info-popup .info-row{margin-bottom:4px;font-size:11px;}
+.info-popup .info-label{font-weight:bold;color:#333;display:inline-block;width:80px;}
+.info-popup .badges{margin:6px 0;font-size:11px;}
+.info-popup .badge{padding:2px 6px;display:inline-block;border-radius:3px;margin-right:4px;margin-bottom:2px;font-size:10px;}
+.info-popup .badge.accom{background:#FFE0E0;color:#C00;}
+.info-popup .badge.hotspring{background:#FFE8D0;color:#F60;}
+.info-popup .badge.shower{background:#E8F5E9;color:#388E3C;}
+.info-popup .badge.bath{background:#FFE0E0;color:#C00;}
+.info-popup .badge.power{background:#E3F2FD;color:#1565C0;}
+.info-popup .badge.auto{background:#FFF9C4;color:#F57F17;}
+.info-popup .badge.free{background:#E0F2F1;color:#00695C;}
+.info-popup .links{border-top:1px solid #eee;padding-top:6px;margin-top:6px;}
+
+/* 検索ボックス */
+.search-row{display:flex;gap:4px;align-items:center;margin-bottom:6px;}
+.search-row input{flex:1;border:1px solid #ddd;border-radius:4px;padding:5px 8px;font-size:12px;outline:none;min-width:0;}
+.search-row input:focus{border-color:#1a73e8;}
+.search-row .s-btn{padding:5px 8px;background:#1a73e8;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:bold;white-space:nowrap;}
+.search-row .s-btn:hover{background:#1557b0;}
+.sat-btn{padding:5px 7px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer;font-size:14px;white-space:nowrap;flex-shrink:0;}
+
+/* スポット登録ポップアップ */
+.add-popup{line-height:1.7;min-width:220px;max-width:260px;font-size:13px;}
+.add-popup select{width:100%;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;margin-bottom:4px;}
+.add-popup input{width:100%;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;margin-bottom:4px;box-sizing:border-box;}
+.add-popup textarea{width:100%;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;margin-bottom:4px;box-sizing:border-box;resize:vertical;}
+.add-popup button{width:100%;padding:6px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;}
+.btn-add{background:#34a853;color:#fff;margin-bottom:4px;}
+.btn-add:hover{background:#2d8f47;}
+.btn-cancel{background:#fff;color:#666;border:1px solid #ddd !important;}
+
+/* レスポンシブ */
+@media(max-width:600px){
+  .fp{display:none !important;}
+  .bs-wrap{display:flex !important;}
+}
+@media(min-width:601px){
+  .fp{display:block !important;}
+  .bs-wrap{display:none !important;}
+}
+@keyframes loadPulse{0%,100%{opacity:1}50%{opacity:.25}}
+.load-dot{width:12px;height:12px;border-radius:50%;background:#bbb;animation:loadPulse 1.2s infinite;flex-shrink:0;align-self:center;cursor:default;}
+.load-dot.done{background:#4caf50;animation:none;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<!-- 🖥️ PC版パネル（左上） -->
+<div class="fp">
+  <div class="search-row">
+    <button id="fpBtnLocation" class="sat-btn">📍</button>
+    <button id="fpSatBtn" class="sat-btn">🛰</button>
+    <input type="text" id="fpSearchInput" placeholder="場所を検索...">
+    <button id="fpSearchBtn" class="s-btn">検索</button>
+    <button class="filter-btn" id="fpBtnAll" style="flex-shrink:0;flex:none;padding:5px 8px;white-space:nowrap;">全選択</button>
+    <button id="fpFoldBtn" class="sat-btn">△</button>
+  </div>
+  
+  <div id="fpContent">
+    <!-- 各カテゴリのフィルターはここに動的に挿入 -->
+  </div>
+  
+  <div style="font-size:11px;color:#666;padding:6px 0;border-top:1px solid #eee;display:flex;align-items:center;gap:8px;">
+    施設数: <span id="fpMarkerCount">0</span>
+    <select id="fpElevationFilter" style="font-size:11px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;">
+      <option value="0">標高 指定なし</option>
+      <option value="500">500m以上</option>
+      <option value="1000">1000m以上</option>
+    </select>
+  </div>
+  <div style="padding:4px 0;display:flex;gap:4px;align-items:center;">
+    <button id="pcUndoBtn" onclick="undoLastDelete()" disabled style="padding:6px 8px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;opacity:0.35;" title="削除を元に戻す">↩️</button>
+    <button onclick="openOtherMap()" style="flex:1;padding:6px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🎆 祭りマップで見る</button>
+    <button onclick="openLightPollutionMap()" style="flex:1;padding:6px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🌃 光害マップ</button>
+    <button id="pcReloadBtn" onclick="forceReload(this)" style="padding:6px 8px;background:#fff;color:#f57c00;border:1.5px solid #f57c00;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;" title="DBを直接更新した場合はこちら">🔄</button>
+    <div id="pcLoadDot" class="load-dot" title="データ読み込み中..."></div>
+  </div>
+</div>
+
+<!-- 📱 スマホボトムシート -->
+<div class="bs-wrap">
+  <div class="bs-handle">
+    <div class="bs-handle-bar"></div>
+    <div class="search-row" style="margin-bottom:4px;">
+      <button id="bsBtnLocation" class="sat-btn">📍</button>
+      <button id="bsSatBtn" class="sat-btn">🛰</button>
+      <input type="text" id="bsSearchInput" placeholder="場所を検索...">
+      <button id="bsSearchBtn" class="s-btn">検索</button>
+      <button id="bsFoldBtn" class="sat-btn">−</button>
+    </div>
+  </div>
+  <div class="bs-body" id="bsBody">
+    <!-- 各カテゴリのフィルターはここに動的に挿入 -->
+  </div>
+  <div style="padding:6px 8px;border-top:1px solid #eee;display:flex;gap:4px;align-items:center;pointer-events:all;background:#fff;">
+    <button id="mUndoBtn" onclick="undoLastDelete()" disabled style="padding:7px 8px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;opacity:0.35;" title="削除を元に戻す">↩️</button>
+    <button onclick="openOtherMap()" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🎆 祭りマップで見る</button>
+    <button onclick="openLightPollutionMap()" style="flex:1;padding:7px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🌃 光害マップ</button>
+    <button id="mReloadBtn" onclick="forceReload(this)" style="padding:7px 8px;background:#fff;color:#f57c00;border:1.5px solid #f57c00;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;" title="DBを直接更新した場合はこちら">🔄</button>
+    <div id="mLoadDot" class="load-dot" title="データ読み込み中..."></div>
+  </div>
+</div>
+
+<script>
+var MY_API_KEY  = "AIzaSyAMBPa_T_URVyJNn1lHnXjzDiEZoKPNPSw";
+var CDN_URL     = 'https://raw.githubusercontent.com/wherethereisawillthereisaway2026/shakuhachi-map-data/main/data.json';
+var GAS_URL     = 'https://script.google.com/macros/s/AKfycbzAsigVzyCuiBpu97pjzT342023sdAPRVPtRx92fpe-Gzp7J9DQDNAbjfuE3cGnNIOEyg/exec';
+var FES_MAP_URL = 'https://wherethereisawillthereisaway2026.github.io/matsuri-map-data/';
+
+function _gasPost(payload) {
+  return fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }).then(function(r) { return r.json(); });
+}
+
+// GASのdoGetが注入していた相互リンクパラメータをURLSearchParamsで代替
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  if (p.get('lat') && p.get('lng')) {
+    window._xLat = parseFloat(p.get('lat'));
+    window._xLng = parseFloat(p.get('lng'));
+    window._xZ   = p.get('z') ? parseInt(p.get('z')) : 12;
+  }
+})();
+var map, infoWindow;
+var activeMarkers = [];       // 現在表示中のMarker（カウント用）
+var markerPool = new Map();   // key: "type:rowIndex" → marker（差分更新プール）
+var allData = [];
+var idleTimer = null;
+var dataLoaded = false;  // GASからのデータ取得完了フラグ
+var _undoStack = [];
+var _pcUndoBtn = null;
+var _mUndoBtn = null;
+
+// 標高フィルター（0=指定なし, 500, 1000）
+var elevationFilter = 0;
+
+// フィルター状態管理（初期状態：全解除）
+var filters = {
+  RS: { accommodation: false, hotspring: false, shower: false, other: false },
+  RV: { bathAndPower: false, bath: false, power: false, other: false },
+  HS: { priceUnder1000: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false },
+  CAMP: { auto: false, other: false },
+  VAN: { OB: false, SH: false, SH3: false, PA: false, WA: false, SH2_2: false, SH2_1: false, SH2_0: false }
+};
+
+// 展望台：トイレ500m以内フィルター
+var obToiletFilter = false;
+
+// 全選択状態管理（トップメニュー）
+var isAllSelected = false;
+
+// 各カテゴリの全選択状態管理
+var categoryAllSelected = {
+  RS: false,
+  RV: false,
+  HS: false,
+  CAMP: false,
+  VAN: false
+};
+
+// HS カテゴリ定義
+const HS_CATEGORIES = {
+  1: 'スーパー', 2: '日帰り', 3: '銭湯', 4: '日帰り宿', 5: '共同',
+  6: 'スポーツ', 7: 'サウナ', 8: '岩盤浴', 9: '足湯', 10: '日帰りP',
+  11: '自然湯', 12: 'デイ', 13: '手湯'
+};
+
+// マーカー色定義
+const MARKER_COLORS = {
+  'RS':   '#90CAF9',
+  'RV':   '#FFCC80',
+  'HS':   '#CE93D8',
+  'CAMP': '#A5D6A7',
+  'OB':   '#F48FB1',
+  'SH':   '#FFAB40',
+  'SH2':  '#BCAAA4',
+  'SH3':  '#FFD54F',
+  'PA':   '#B0BEC5',
+  'WA':   '#80DEEA'
+};
+
+function openOtherMap() {
+  var center = map.getCenter();
+  var params = '?lat=' + center.lat().toFixed(5) + '&lng=' + center.lng().toFixed(5) + '&z=' + map.getZoom();
+  window.open(FES_MAP_URL + params, '_blank');
+}
+
+function openLightPollutionMap() {
+  var center = map.getCenter();
+  var lat = center.lat().toFixed(4);
+  var lon = center.lng().toFixed(4);
+  var zoom = map.getZoom().toFixed(2);
+  var state = 'eyJiYXNlbWFwIjoiTGF5ZXJCaW5nUm9hZCIsIm92ZXJsYXkiOiJzYl8yMDI1Iiwib3ZlcmxheWNvbG9yIjpmYWxzZSwib3ZlcmxheW9wYWNpdHkiOiI2MCIsImZlYXR1cmVzb3BhY2l0eSI6Ijg1In0=';
+  var url = 'https://www.lightpollutionmap.info/#zoom=' + zoom + '&lat=' + lat + '&lon=' + lon + '&state=' + state;
+  window.open(url, '_blank');
+}
+
+function initMap() {
+  _pcUndoBtn = document.getElementById('pcUndoBtn');
+  _mUndoBtn  = document.getElementById('mUndoBtn');
+  // doGetから注入された相互リンクパラメータを優先チェック
+  var fromLink = typeof _xLat !== 'undefined';
+  // 同タブ内で既に相互リンク座標を適用済みかチェック（リロード時はlocalStorageを優先）
+  var isFirstCrossLink = fromLink && !sessionStorage.getItem('crossLinkApplied');
+  if (isFirstCrossLink) sessionStorage.setItem('crossLinkApplied', '1');
+
+  // フィルター状態をlocalStorageから復元
+  try {
+    var savedFilters = localStorage.getItem('mapFilters');
+    if (savedFilters) {
+      var parsed = JSON.parse(savedFilters);
+      // 既知キーのみ上書き（新カテゴリ追加時に壊れないよう防御的にマージ）
+      Object.keys(filters).forEach(function(group) {
+        if (parsed[group]) {
+          Object.keys(filters[group]).forEach(function(key) {
+            if (typeof parsed[group][key] === 'boolean') {
+              filters[group][key] = parsed[group][key];
+            }
+          });
+        }
+      });
+    }
+  } catch(e) {}
+
+  // セッションから保存されたズーム位置を復元
+  const savedZoom = localStorage.getItem('mapZoom');
+  const savedLat = localStorage.getItem('mapLat');
+  const savedLng = localStorage.getItem('mapLng');
+
+  // 初期ズーム：初回相互リンク > localStorage > デフォルト
+  const initialZoom = isFirstCrossLink ? _xZ : (savedZoom ? parseInt(savedZoom) : 8);
+  const initialCenter = isFirstCrossLink
+    ? { lat: _xLat, lng: _xLng }
+    : (savedLat && savedLng)
+      ? { lat: parseFloat(savedLat), lng: parseFloat(savedLng) }
+      : { lat: 36.2048, lng: 138.2529 };
+  
+  map = new google.maps.Map(document.getElementById('map'), {
+    zoom: initialZoom,
+    center: initialCenter,
+    fullscreenControl: false,
+    streetViewControl: false,
+    mapTypeControl: false,
+    gestureHandling: 'greedy'
+  });
+  
+  infoWindow = new google.maps.InfoWindow();
+  
+  map.addListener('click', function(event) {
+    if (event.placeId) {
+      // 地図上のPOIタップ → 詳細取得して登録フォームへ
+      event.stop();
+      var svc = new google.maps.places.PlacesService(map);
+      svc.getDetails({
+        placeId: event.placeId,
+        fields: ['name', 'place_id', 'geometry', 'formatted_address']
+      }, function(place, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          showSearchResult(place);
+        }
+      });
+    } else {
+      infoWindow.close();
+    }
+  });
+  
+  // ズーム変更時：セッション保存のみ（描画はidleに任せる）
+  map.addListener('zoom_changed', function() {
+    localStorage.setItem('mapZoom', map.getZoom());
+  });
+
+  // 中心変更時にセッション保存
+  map.addListener('center_changed', function() {
+    const center = map.getCenter();
+    localStorage.setItem('mapLat', center.lat());
+    localStorage.setItem('mapLng', center.lng());
+  });
+
+  // マップ操作終了後にビューポートカリングで再描画（debounce 150ms）
+  map.addListener('idle', function() {
+    if (!dataLoaded) return;  // データ到着前の早期発火を無視
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(renderMarkers, 150);
+  });
+  
+  loadData();
+  buildUI();
+  setupEventListeners();
+  updateFilterUI();
+}
+
+function loadData() {
+  fetch(CDN_URL + '?t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      allData = data;
+      dataLoaded = true;
+      renderMarkers();
+    })
+    .catch(function(err) {
+      ['pcLoadDot','mLoadDot'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) { el.className = 'load-dot'; el.style.background = '#f44336'; el.title = 'データ読み込み失敗: ' + err; }
+      });
+    });
+}
+
+function buildUI() {
+  const fpContent = document.getElementById('fpContent');
+  fpContent.innerHTML = '';
+  
+  // RS
+  fpContent.innerHTML += '<div class="category-section" style="border-bottom:none;">' +
+    '<div class="category-title"><span class="category-icon">🛣️</span>道の駅</div>' +
+    '<div class="filter-row">' +
+    '<button class="filter-btn" id="fpRS_all">全選択</button>' +
+    '<button class="filter-btn" id="fpRS_accommodation">🛏️宿泊</button>' +
+    '<button class="filter-btn" id="fpRS_hotspring">♨️温泉</button>' +
+    '<button class="filter-btn" id="fpRS_shower">🚿シャワー</button>' +
+    '<button class="filter-btn" id="fpRS_other">🛣️その他</button>' +
+    '</div></div>';
+  
+  // RV
+  fpContent.innerHTML += '<div class="category-section" style="border-top:none;border-bottom:none;">' +
+    '<div class="category-title"><span class="category-icon">🚐</span>RVパーク</div>' +
+    '<div class="filter-row">' +
+    '<button class="filter-btn" id="fpRV_all">全選択</button>' +
+    '<button class="filter-btn" id="fpRV_bathAndPower">🛁🔌</button>' +
+    '<button class="filter-btn" id="fpRV_bath">🛁入浴施設</button>' +
+    '<button class="filter-btn" id="fpRV_power">🔌電源施設</button>' +
+    '<button class="filter-btn" id="fpRV_other">🚐その他</button>' +
+    '</div></div>';
+  
+  // HS 【修正】価格フィルター追加 + 5列×3段配置
+  let hsHTML = '<div class="category-section" style="border-top:none;border-bottom:none;">' +
+    '<div class="category-title"><span class="category-icon">♨️</span>温泉</div>' +
+    '<div class="filter-row">' +
+    '<button class="filter-btn" id="fpHS_all">全選択</button>' +
+    '<button class="filter-btn" id="fpHS_priceUnder1000">🔴1000円未満</button>' +
+    '</div>' +
+    '<div class="hs-grid-container">';
+  
+  // HS カテゴリボタン（サウナ/岩盤浴/足湯/手湯は別セクションに移動）
+  const HS_SUB_CATS = [7, 8, 9, 13];
+  for (let i = 1; i <= 13; i++) {
+    if (HS_SUB_CATS.indexOf(i) !== -1) continue;
+    const categoryName = HS_CATEGORIES[i] || '未定義';
+    hsHTML += '<button id="fpHS_' + i + '" class="hs-grid-btn" title="' + categoryName + '">' + categoryName + '</button>';
+  }
+
+  hsHTML += '</div></div>';
+  fpContent.innerHTML += hsHTML;
+
+  // HS サブカテゴリ（サウナ・岩盤浴・足湯・手湯）
+  let hsSubHTML = '<div class="category-section" style="border-top:none;border-bottom:none;">' +
+    '<div class="category-title"><span class="category-icon">🧖</span>サウナ・足湯</div>' +
+    '<div class="hs-grid-container">';
+  for (const idx of [7, 8, 9, 13]) {
+    const categoryName = HS_CATEGORIES[idx];
+    hsSubHTML += '<button id="fpHS_' + idx + '" class="hs-grid-btn" title="' + categoryName + '">' + categoryName + '</button>';
+  }
+  hsSubHTML += '</div></div>';
+  fpContent.innerHTML += hsSubHTML;
+  
+  // CAMP（キャンプ場 - オートサイト/非オート）
+  fpContent.innerHTML += '<div class="category-section" style="border-bottom:none;">' +
+    '<div class="category-title"><span class="category-icon">🏕️</span>キャンプ場</div>' +
+    '<div class="filter-row">' +
+    '<button class="filter-btn" id="fpCAMP_all">全選択</button>' +
+    '<button class="filter-btn" id="fpCAMP_auto">🚘オートサイト</button>' +
+    '<button class="filter-btn" id="fpCAMP_other">⛺非オート</button>' +
+    '</div></div>';
+  
+  // VAN (車中泊 - 展望台等)
+  fpContent.innerHTML += '<div class="category-section" style="border-bottom:none;">' +
+    '<div class="category-title"><span class="category-icon">🚐</span>車中泊</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;">' +
+    '<button class="filter-btn" id="fpVAN_all">全選択</button>' +
+    '<button class="filter-btn" id="fpSH">🚌車中泊</button>' +
+    '<button class="filter-btn" id="fpSH2_2">🚙み車泊</button>' +
+    '<button class="filter-btn" id="fpSH3">🛺車泊3</button>' +
+    '<button class="filter-btn" id="fpOB">🗼展望台</button>' +
+    '<button class="filter-btn" id="fpOBToilet">🚻500m以内</button>' +
+    '<button class="filter-btn" id="fpSH2_1">🈶有料</button>' +
+    '<button class="filter-btn" id="fpPA">🅿️Pエリア</button>' +
+    '<button class="filter-btn" id="fpSH2_0">⛔車泊NG</button>' +
+    '<button class="filter-btn" id="fpWA">🚰給水</button>' +
+    '</div></div>';
+  
+  const bsBody = document.getElementById('bsBody');
+  bsBody.innerHTML = fpContent.innerHTML.replace(/id="fp/g, 'id="bs');
+  bsBody.innerHTML += '<div style="font-size:11px;color:#666;padding:6px 0;border-top:1px solid #eee;display:flex;align-items:center;gap:8px;">' +
+    '施設数: <span id="bsMarkerCount">0</span>' +
+    '<select id="bsElevationFilter" style="font-size:11px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;">' +
+    '<option value="0">標高 指定なし</option>' +
+    '<option value="500">500m以上</option>' +
+    '<option value="1000">1000m以上</option>' +
+    '</select></div>';
+}
+
+function setupEventListeners() {
+  // PC・スマホ両方のボタンにイベントを登録するヘルパー
+  function $btn(suffix, handler) {
+    var fp = document.getElementById('fp' + suffix);
+    var bs = document.getElementById('bs' + suffix);
+    if (fp) fp.addEventListener('click', handler);
+    if (bs) bs.addEventListener('click', handler);
+  }
+
+  // RS
+  $btn('RS_all', function() {
+    const allOn = filters.RS.accommodation && filters.RS.hotspring && filters.RS.shower && filters.RS.other;
+    filters.RS.accommodation = !allOn;
+    filters.RS.hotspring = !allOn;
+    filters.RS.shower = !allOn;
+    filters.RS.other = !allOn;
+    categoryAllSelected.RS = !allOn;
+    updateFilterUI();
+    updateMarkers();
+  });
+  
+  $btn('RS_accommodation', function() {
+    filters.RS.accommodation = !filters.RS.accommodation;
+    categoryAllSelected.RS = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('RS_hotspring', function() {
+    filters.RS.hotspring = !filters.RS.hotspring;
+    categoryAllSelected.RS = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('RS_shower', function() {
+    filters.RS.shower = !filters.RS.shower;
+    categoryAllSelected.RS = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('RS_other', function() {
+    filters.RS.other = !filters.RS.other;
+    categoryAllSelected.RS = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  // RV
+  $btn('RV_all', function() {
+    const allOn = filters.RV.bathAndPower && filters.RV.bath && filters.RV.power && filters.RV.other;
+    filters.RV.bathAndPower = !allOn;
+    filters.RV.bath = !allOn;
+    filters.RV.power = !allOn;
+    filters.RV.other = !allOn;
+    categoryAllSelected.RV = !allOn;
+    updateFilterUI();
+    updateMarkers();
+  });
+  
+  $btn('RV_bathAndPower', function() {
+    filters.RV.bathAndPower = !filters.RV.bathAndPower;
+    categoryAllSelected.RV = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('RV_bath', function() {
+    filters.RV.bath = !filters.RV.bath;
+    categoryAllSelected.RV = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('RV_power', function() {
+    filters.RV.power = !filters.RV.power;
+    categoryAllSelected.RV = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('RV_other', function() {
+    filters.RV.other = !filters.RV.other;
+    categoryAllSelected.RV = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  // HS（全選択はサウナ/岩盤浴/足湯/手湯を除くメインカテゴリのみ。価格フィルターは独立）
+  const HS_MAIN_CATS = [1, 2, 3, 4, 5, 6, 10, 11, 12];
+  $btn('HS_all', function() {
+    const allOn = HS_MAIN_CATS.every(i => filters.HS[i]);
+    HS_MAIN_CATS.forEach(i => { filters.HS[i] = !allOn; });
+    categoryAllSelected.HS = !allOn;
+    updateFilterUI();
+    updateMarkers();
+  });
+  
+  $btn('HS_priceUnder1000', function() {
+    filters.HS.priceUnder1000 = !filters.HS.priceUnder1000;
+    categoryAllSelected.HS = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  for (let i = 1; i <= 13; i++) {
+    (function(idx) {
+      $btn('HS_' + idx, function() {
+        filters.HS[idx] = !filters.HS[idx];
+        categoryAllSelected.HS = false;
+        updateFilterUI();
+        updateMarkers();
+      });
+    })(i);
+  }
+
+  // CAMP（キャンプ場）
+  $btn('CAMP_all', function() {
+    const allOn = filters.CAMP.auto && filters.CAMP.other;
+    filters.CAMP.auto = !allOn;
+    filters.CAMP.other = !allOn;
+    categoryAllSelected.CAMP = !allOn;
+    updateFilterUI();
+    updateMarkers();
+  });
+  
+  $btn('CAMP_auto', function() {
+    filters.CAMP.auto = !filters.CAMP.auto;
+    categoryAllSelected.CAMP = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('CAMP_other', function() {
+    filters.CAMP.other = !filters.CAMP.other;
+    categoryAllSelected.CAMP = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  // VAN (車中泊)
+  function vanAllOn() {
+    return filters.VAN.OB && filters.VAN.SH && filters.VAN.SH3 && filters.VAN.PA && filters.VAN.WA &&
+           filters.VAN.SH2_2 && filters.VAN.SH2_1 && filters.VAN.SH2_0;
+  }
+
+  $btn('VAN_all', function() {
+    const v = !vanAllOn();
+    Object.keys(filters.VAN).forEach(function(k){ filters.VAN[k] = v; });
+    categoryAllSelected.VAN = v;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('OB', function() {
+    filters.VAN.OB = !filters.VAN.OB;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('OBToilet', function() {
+    obToiletFilter = !obToiletFilter;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('SH', function() {
+    filters.VAN.SH = !filters.VAN.SH;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('SH3', function() {
+    filters.VAN.SH3 = !filters.VAN.SH3;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('PA', function() {
+    filters.VAN.PA = !filters.VAN.PA;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('WA', function() {
+    filters.VAN.WA = !filters.VAN.WA;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('SH2_2', function() {
+    filters.VAN.SH2_2 = !filters.VAN.SH2_2;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('SH2_1', function() {
+    filters.VAN.SH2_1 = !filters.VAN.SH2_1;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('SH2_0', function() {
+    filters.VAN.SH2_0 = !filters.VAN.SH2_0;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  // トップメニュー全選択
+  $btn('BtnAll', function() {
+    isAllSelected = !isAllSelected;
+    
+    if (isAllSelected) {
+      filters.RS.accommodation = true;
+      filters.RS.hotspring = true;
+      filters.RS.shower = true;
+      filters.RS.other = true;
+      categoryAllSelected.RS = true;
+      
+      filters.RV.bathAndPower = true;
+      filters.RV.bath = true;
+      filters.RV.power = true;
+      filters.RV.other = true;
+      categoryAllSelected.RV = true;
+      
+      filters.HS.priceUnder1000 = false;
+      for (let i = 1; i <= 13; i++) filters.HS[i] = true;
+      categoryAllSelected.HS = true;
+      
+      filters.CAMP.auto = true;
+      filters.CAMP.other = true;
+      categoryAllSelected.CAMP = true;
+      
+      filters.VAN.OB = true;
+      filters.VAN.SH = true;
+      filters.VAN.SH3 = true;
+      filters.VAN.PA = true;
+      filters.VAN.WA = true;
+      filters.VAN.SH2_2 = true;
+      filters.VAN.SH2_1 = true;
+      filters.VAN.SH2_0 = true;
+      categoryAllSelected.VAN = true;
+    } else {
+      filters.RS.accommodation = false;
+      filters.RS.hotspring = false;
+      filters.RS.shower = false;
+      filters.RS.other = false;
+      
+      filters.RV.bathAndPower = false;
+      filters.RV.bath = false;
+      filters.RV.power = false;
+      filters.RV.other = false;
+      
+      filters.HS.priceUnder1000 = false;
+      for (let i = 1; i <= 13; i++) filters.HS[i] = false;
+      
+      filters.CAMP.auto = false;
+      filters.CAMP.other = false;
+      
+      filters.VAN.SH = false;
+      filters.VAN.SH3 = false;
+      filters.VAN.PA = false;
+      filters.VAN.WA = false;
+      filters.VAN.SH2_2 = false;
+      filters.VAN.SH2_1 = false;
+      filters.VAN.SH2_0 = false;
+      
+      Object.keys(categoryAllSelected).forEach(k => categoryAllSelected[k] = false);
+    }
+    
+    updateFilterUI();
+    updateMarkers();
+  });
+  
+  // ロケーションボタン
+  document.getElementById('fpBtnLocation').addEventListener('click', getCurrentLocation);
+  document.getElementById('bsBtnLocation').addEventListener('click', getCurrentLocation);
+  
+  // フォールドボタン
+  document.getElementById('fpFoldBtn').addEventListener('click', function() {
+    document.getElementById('fpContent').style.display = document.getElementById('fpContent').style.display === 'none' ? 'block' : 'none';
+  });
+  
+  document.getElementById('bsFoldBtn').addEventListener('click', function() {
+    document.getElementById('bsBody').classList.toggle('collapsed');
+  });
+
+  // 標高フィルター（PC・スマホ共通）
+  function onElevationChange(val) {
+    elevationFilter = Number(val);
+    var fpSel = document.getElementById('fpElevationFilter');
+    var bsSel = document.getElementById('bsElevationFilter');
+    if (fpSel) fpSel.value = val;
+    if (bsSel) bsSel.value = val;
+    updateMarkers();
+  }
+  document.getElementById('fpElevationFilter').addEventListener('change', function() {
+    onElevationChange(this.value);
+  });
+  document.getElementById('bsElevationFilter').addEventListener('change', function() {
+    onElevationChange(this.value);
+  });
+}
+
+function updateFilterUI() {
+  function $tog(suffix, state) {
+    var fp = document.getElementById('fp' + suffix);
+    var bs = document.getElementById('bs' + suffix);
+    if (fp) fp.classList.toggle('on', state);
+    if (bs) bs.classList.toggle('on', state);
+  }
+
+  // RS
+  $tog('RS_all', categoryAllSelected.RS);
+  $tog('RS_accommodation', filters.RS.accommodation);
+  $tog('RS_hotspring', filters.RS.hotspring);
+  $tog('RS_shower', filters.RS.shower);
+  $tog('RS_other', filters.RS.other);
+
+  // RV
+  $tog('RV_all', categoryAllSelected.RV);
+  $tog('RV_bathAndPower', filters.RV.bathAndPower);
+  $tog('RV_bath', filters.RV.bath);
+  $tog('RV_power', filters.RV.power);
+  $tog('RV_other', filters.RV.other);
+
+  // HS（全選択ハイライトはメインカテゴリのみ判定。価格フィルターは独立）
+  const hsAllFiltersOn = [1,2,3,4,5,6,10,11,12].every(i => filters.HS[i]);
+  $tog('HS_all', hsAllFiltersOn);
+  $tog('HS_priceUnder1000', filters.HS.priceUnder1000);
+  for (let i = 1; i <= 13; i++) {
+    $tog('HS_' + i, filters.HS[i]);
+  }
+
+  // CAMP
+  $tog('CAMP_all', filters.CAMP.auto && filters.CAMP.other);
+  $tog('CAMP_auto', filters.CAMP.auto);
+  $tog('CAMP_other', filters.CAMP.other);
+
+  // VAN
+  $tog('VAN_all', categoryAllSelected.VAN);
+  $tog('OB', filters.VAN.OB);
+  $tog('OBToilet', obToiletFilter);
+  $tog('SH', filters.VAN.SH);
+  $tog('SH3', filters.VAN.SH3);
+  $tog('PA', filters.VAN.PA);
+  $tog('WA', filters.VAN.WA);
+  $tog('SH2_2', filters.VAN.SH2_2);
+  $tog('SH2_1', filters.VAN.SH2_1);
+  $tog('SH2_0', filters.VAN.SH2_0);
+
+  // 全選択ボタン
+  $tog('BtnAll', isAllSelected);
+}
+
+function shouldDisplay(item) {
+  // ズームフィルター（全カテゴリ共通：12未満は非表示）
+  if (map.getZoom() < 12) return false;
+
+  // 標高フィルター（HS以外に適用）
+  if (elevationFilter > 0 && item.type !== 'HS') {
+    var elev = parseFloat(item.elevation);
+    if (isNaN(elev) || elev < elevationFilter) return false;
+  }
+
+  if (item.type === 'RS') {
+    const hasChecked = filters.RS.accommodation || filters.RS.hotspring || filters.RS.shower || filters.RS.other;
+    if (!hasChecked) return false;
+    const isOther = !item.accommodation && !item.hotspring && !item.shower;
+    if (filters.RS.accommodation && item.accommodation) return true;
+    if (filters.RS.hotspring && item.hotspring) return true;
+    if (filters.RS.shower && item.shower) return true;
+    if (filters.RS.other && isOther) return true;
+    return false;
+  }
+  
+  if (item.type === 'RV') {
+    const hasChecked = filters.RV.bathAndPower || filters.RV.bath || filters.RV.power || filters.RV.other;
+    if (!hasChecked) return false;
+    const isOther = !item.bath && !item.power;
+    const isBathAndPower = item.bath && item.power;
+    
+    if (filters.RV.bathAndPower && isBathAndPower) return true;  // 入浴＆電源の両方
+    if (filters.RV.bath && item.bath && !item.power) return true;  // 入浴施設のみ（電源なし）
+    if (filters.RV.power && item.power && !item.bath) return true;  // 電源施設のみ（入浴なし）
+    if (filters.RV.other && isOther) return true;  // その他
+    return false;
+  }
+  
+  if (item.type === 'HS') {
+    // カテゴリチェック
+    const hasCategory = Object.keys(filters.HS)
+      .filter(k => k !== 'priceUnder1000')
+      .some(k => filters.HS[k]);
+    
+    if (!hasCategory) return false;
+    if (!filters.HS[item.category]) return false;
+    
+    // 価格フィルター：priceUnder1000 がONなら、0~999円のデータのみ
+    if (filters.HS.priceUnder1000) {
+      const priceMatch = item.price.match(/\d+/);
+      if (!priceMatch) return false;
+      const priceNum = Number(priceMatch[0]);
+      if (priceNum >= 1000) return false;
+    }
+    
+    return true;
+  }
+  
+  if (item.type === 'CAMP') {
+    const hasChecked = filters.CAMP.auto || filters.CAMP.other;
+    if (!hasChecked) return false;
+    if (filters.CAMP.auto && item.autoSite) return true;
+    if (filters.CAMP.other && !item.autoSite) return true;
+    return false;
+  }
+  
+  if (item.type === 'OB') {
+    if (!filters.VAN.OB) return false;
+    if (obToiletFilter && (item.toiletDist === null || item.toiletDist > 500)) return false;
+    return true;
+  }
+
+  if (item.type === 'SH') {
+    return filters.VAN.SH;
+  }
+
+  if (item.type === 'SH2') {
+    if (item.category === 2) return filters.VAN.SH2_2;
+    if (item.category === 1) return filters.VAN.SH2_1;
+    if (item.category === 0) return filters.VAN.SH2_0;
+    return false;
+  }
+
+  if (item.type === 'SH3') {
+    return filters.VAN.SH3;
+  }
+
+  if (item.type === 'PA') {
+    return filters.VAN.PA;
+  }
+
+  if (item.type === 'WA') {
+    return filters.VAN.WA;
+  }
+
+  return false;
+}
+
+function getMarkerKey(item) {
+  return item.type + ':' + item.rowIndex;
+}
+
+function getMapUrl(item) {
+  if (item.mapUrl) return item.mapUrl;  // SH / SH3: シート直格納リンク
+  if (item.placeId) {
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.name) + '&query_place_id=' + item.placeId;
+  }
+  return 'https://www.google.com/maps?q=' + item.lat + ',' + item.lng;
+}
+
+function clearMarkerPool() {
+  markerPool.forEach(function(m) { m.setMap(null); });
+  markerPool.clear();
+  activeMarkers = [];
+}
+
+var _emojiIconCache = {};
+function createEmojiIcon(emoji, bgColor) {
+  var key = emoji + '|' + (bgColor || '');
+  if (_emojiIconCache[key]) return _emojiIconCache[key];
+  var isDual = emoji.length > 3;
+  var fontSize = isDual ? 13 : 18;
+  var color = bgColor || '#9E9E9E';
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">'
+    + '<circle cx="20" cy="20" r="18" fill="' + color + '" stroke="white" stroke-width="2"/>'
+    + '<text x="20" y="25" font-size="' + fontSize + '" text-anchor="middle">' + emoji + '</text>'
+    + '</svg>';
+  var blob = new Blob([svg], {type: 'image/svg+xml'});
+  var icon = {
+    url: URL.createObjectURL(blob),
+    scaledSize: new google.maps.Size(40, 40),
+    anchor: new google.maps.Point(20, 20)
+  };
+  _emojiIconCache[key] = icon;
+  return icon;
+}
+
+function getMarkerColor(item) {
+  return MARKER_COLORS[item.type] || '#9E9E9E';
+}
+
+function getMarkerEmoji(item) {
+  if (item.type === 'HS') {
+    if (item.category === 7) return '🧖';
+    if (item.category === 8) return '🪨';
+    if (item.category === 9 || item.category === 13) return '🦶';
+    return '♨️';
+  }
+  if (item.type === 'RS') {
+    if (item.accommodation) return '🛏️';
+    if (item.hotspring) return '♨️';
+    if (item.shower) return '🚿';
+    return '🛣️';
+  }
+  if (item.type === 'RV') {
+    if (item.bath && item.power) return '🛁🔌';
+    if (item.bath) return '🛁';
+    if (item.power) return '🔌';
+    return '🚐';
+  }
+  if (item.type === 'CAMP') return item.autoSite ? '🚘' : '⛺';
+  if (item.type === 'OB') return '🗼';
+  if (item.type === 'SH') return '🚌';
+  if (item.type === 'SH2') {
+    if (item.category === 2) return '🚙';
+    if (item.category === 1) return '🈶';
+    return '⛔';
+  }
+  if (item.type === 'SH3') return '🛺';
+  if (item.type === 'PA') return '🅿️';
+  if (item.type === 'WA') return '🚰';
+  return '📍';
+}
+
+// ビューポートカリング：差分更新（markerPool再利用）
+function renderMarkers() {
+  if (map.getZoom() < 12) {
+    markerPool.forEach(function(m) { m.setMap(null); });
+    activeMarkers = [];
+    updateMarkerCount();
+    return;
+  }
+
+  var bounds = map.getBounds();
+  if (!bounds) return;
+
+  var shouldShow = new Set();
+  var dataIndex = new Map();
+  for (var i = 0; i < allData.length; i++) {
+    var item = allData[i];
+    var key = getMarkerKey(item);
+    dataIndex.set(key, item);
+    if (!shouldDisplay(item)) continue;
+    if (!bounds.contains({ lat: item.lat, lng: item.lng })) continue;
+    shouldShow.add(key);
+  }
+
+  // 既存マーカーを表示／非表示に切り替え
+  markerPool.forEach(function(m, key) {
+    if (shouldShow.has(key)) {
+      if (!m.getMap()) m.setMap(map);
+    } else {
+      if (m.getMap()) m.setMap(null);
+    }
+  });
+
+  // 新規マーカーのみ生成
+  shouldShow.forEach(function(key) {
+    if (!markerPool.has(key)) {
+      var item = dataIndex.get(key);
+      if (item) _createMarker(item);
+    }
+  });
+
+  // activeMarkersを更新（カウント用）
+  activeMarkers = [];
+  markerPool.forEach(function(m) {
+    if (m.getMap()) activeMarkers.push(m);
+  });
+
+  updateMarkerCount();
+}
+
+function _createMarker(item) {
+  var marker = new google.maps.Marker({
+    position: { lat: item.lat, lng: item.lng },
+    map: map,
+    title: item.name,
+    icon: createEmojiIcon(getMarkerEmoji(item), getMarkerColor(item))
+  });
+  marker._item = item;
+  marker.addListener('click', function() { showInfo(item, marker); });
+  markerPool.set(getMarkerKey(item), marker);
+  return marker;
+}
+
+function clearActiveMarkers() {
+  markerPool.forEach(function(m) { m.setMap(null); });
+  activeMarkers = [];
+}
+
+// フィルター変更時に呼ばれる（idleと同じ処理）
+function updateMarkers() {
+  renderMarkers();
+  // フィルター状態をlocalStorageに保存（再読み込み後も維持）
+  try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+}
+
+function updateMarkerCount() {
+  var count = activeMarkers.length;
+  document.getElementById('fpMarkerCount').textContent = count;
+  var bsCount = document.getElementById('bsMarkerCount');
+  if (bsCount) bsCount.textContent = count;
+  if (dataLoaded) {
+    ['pcLoadDot','mLoadDot'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) { el.className = 'load-dot done'; el.title = '読み込み完了'; }
+    });
+  }
+}
+
+function showInfo(item, marker) {
+  let html = '<div class="info-popup">';
+  html += '<div class="title"><a href="' + getMapUrl(item) + '" class="popup-link" target="_blank">' + item.name + '</a></div>';
+  
+  if (item.type === 'RS') {
+    html += '<div class="subtitle">' + item.address + '</div>';
+    html += '<div class="badges">';
+    if (item.accommodation) html += '<span class="badge accom">🛏️ 宿泊</span>';
+    if (item.hotspring) html += '<span class="badge hotspring">♨️ 温泉</span>';
+    if (item.shower) html += '<span class="badge shower">🚿 シャワー</span>';
+    html += '</div>';
+    if (item.elevation) html += '<div class="info-row">標高: ' + item.elevation + 'm</div>';
+    html += '<div class="links">';
+    if (item.officialUrl1) html += '<div><a href="' + item.officialUrl1 + '" class="popup-link" target="_blank">公式①</a></div>';
+    if (item.officialUrl2) html += '<div><a href="' + item.officialUrl2 + '" class="popup-link" target="_blank">公式②</a></div>';
+    html += '</div>';
+  }
+  else if (item.type === 'RV') {
+    html += '<div class="subtitle">' + item.address + '</div>';
+    html += '<div class="badges">';
+    if (item.bath) html += '<span class="badge bath">🛁 入浴</span>';
+    if (item.power) html += '<span class="badge power">🔌 電源</span>';
+    html += '</div>';
+    if (item.price) html += '<div class="info-row"><span class="info-label">料金:</span>' + item.price + '</div>';
+    if (item.powerPrice) html += '<div class="info-row"><span class="info-label">電源料金:</span>' + item.powerPrice + '</div>';
+    if (item.elevation) html += '<div class="info-row">標高: ' + item.elevation + 'm</div>';
+    html += '<div class="links">';
+    if (item.officialUrl) html += '<div><a href="' + item.officialUrl + '" class="popup-link" target="_blank">公式サイト</a></div>';
+    html += '</div>';
+  }
+  else if (item.type === 'HS') {
+    html += '<div class="subtitle">' + item.address + '</div>';
+    html += '<div class="info-row"><span class="info-label">カテゴリ:</span>' + item.categoryName + '</div>';
+    if (item.price) html += '<div class="info-row"><span class="info-label">料金:</span>' + item.price + '</div>';
+    if (item.businessHours) html += '<div class="info-row"><span class="info-label">営業時間:</span>' + item.businessHours + '</div>';
+    if (item.closedDay) html += '<div class="info-row"><span class="info-label">定休日:</span>' + item.closedDay + '</div>';
+    if (item.elevation) html += '<div class="info-row">標高: ' + item.elevation + 'm</div>';
+    html += '<div class="links">';
+    if (item.externalUrl) html += '<div><a href="' + item.externalUrl + '" class="popup-link" target="_blank">外部リンク</a></div>';
+    if (item.officialUrl) html += '<div><a href="' + item.officialUrl + '" class="popup-link" target="_blank">公式サイト</a></div>';
+    html += '</div>';
+  }
+  else if (item.type === 'CAMP') {
+    html += '<div class="subtitle">' + (item.location || '') + '</div>';
+    html += '<div class="badges">';
+    if (item.autoSite) html += '<span class="badge auto">🚘 オートサイト</span>';
+    if (!item.autoSite) html += '<span class="badge free">⛺ 非オート</span>';
+    html += '</div>';
+    if (item.info1) html += '<div class="info-row"><span class="info-label">料金:</span>' + item.info1 + '</div>';
+    if (item.info2) html += '<div class="info-row"><span class="info-label">情報2:</span>' + item.info2 + '</div>';
+    if (item.info3) html += '<div class="info-row"><span class="info-label">情報3:</span>' + item.info3 + '</div>';
+    if (item.info4) html += '<div class="info-row"><span class="info-label">情報4:</span>' + item.info4 + '</div>';
+    if (item.elevation) html += '<div class="info-row">標高: ' + item.elevation + 'm</div>';
+    html += '<div class="links">';
+    if (item.officialUrl) html += '<div><a href="' + item.officialUrl + '" class="popup-link" target="_blank">公式サイト</a></div>';
+    if (item.externalUrl) html += '<div><a href="' + item.externalUrl + '" class="popup-link" target="_blank">外部リンク</a></div>';
+    html += '</div>';
+  }
+  else if (item.type === 'OB') {
+    if (item.rating) html += '<div class="info-row"><span class="info-label">情報:</span>' + item.rating + '</div>';
+    if (item.elevation) html += '<div class="info-row"><span class="info-label">標高:</span>' + item.elevation + 'm</div>';
+    html += '<div class="links">';
+    html += '</div>';
+  }
+  else if (item.type === 'SH') {
+    if (item.kind) html += '<div class="info-row"><span class="info-label">種類:</span>' + item.kind + '</div>';
+    if (item.elevation) html += '<div class="info-row"><span class="info-label">標高:</span>' + item.elevation + 'm</div>';
+    html += '<div class="links">';
+    // mapUrl へのリンクはタイトル部分で処理済み
+    html += '</div>';
+  }
+  else if (item.type === 'SH2') {
+    if (item.elevation) html += '<div class="info-row"><span class="info-label">標高:</span>' + item.elevation + 'm</div>';
+  }
+  else if (item.type === 'SH3') {
+    if (item.kind) html += '<div class="info-row"><span class="info-label">種類:</span>' + item.kind + '</div>';
+  }
+  else if (item.type === 'PA') {
+    if (item.info) html += '<div class="info-row"><span class="info-label">情報:</span>' + item.info + '</div>';
+  }
+  else if (item.type === 'WA') {
+    if (item.info) html += '<div class="info-row"><span class="info-label">情報:</span>' + item.info + '</div>';
+  }
+  
+  var _rowIdx   = item.rowIndex;
+  var _itemType = item.type;
+  var _memoRaw  = (item.memo || '').trim();
+  var _memoEsc  = _memoRaw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  var _memoDisplay = _memoRaw && !_memoRaw.startsWith('http') ? _memoRaw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '';
+  if (_memoDisplay) {
+    html += '<span style="color:#666;font-size:12px;">📝 ' + _memoDisplay + '</span><br>';
+  }
+  var _memoTextarea = _memoRaw.startsWith('http') ? '' : _memoEsc;
+  html += '<hr style="margin:6px 0;border:none;border-top:1px solid #eee;">';
+  html += '<div style="display:flex;gap:4px;">';
+  html += '<button onclick="toggleMemo(' + _rowIdx + ',\'' + _itemType + '\')" style="flex:1;padding:5px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">📝 編集</button>';
+  html += '<button onclick="deletePin(' + _rowIdx + ',this,\'' + _itemType + '\')" style="flex:1;padding:5px;background:#fff;color:#ea4335;border:1.5px solid #ea4335;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🗑 削除</button>';
+  html += '</div>';
+  html += '<div id="memo-area-' + _rowIdx + '-' + _itemType + '" style="display:none;margin-top:4px;">';
+  html += '<textarea id="memo-' + _rowIdx + '-' + _itemType + '" rows="2" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;resize:vertical;">' + _memoTextarea + '</textarea>';
+  html += '<button id="savememo-btn-' + _rowIdx + '-' + _itemType + '" onclick="saveMemo(' + _rowIdx + ',\'' + _itemType + '\')" style="width:100%;padding:5px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">保存</button>';
+  html += '</div>';
+
+  html += '</div>';
+
+  infoWindow.setContent(html);
+  if (marker) infoWindow.open(map, marker);
+}
+
+function toggleMemo(rowIdx, type) {
+  var area = document.getElementById('memo-area-' + rowIdx + '-' + type);
+  if (area) area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveMemo(rowIdx, type) {
+  var ta = document.getElementById('memo-' + rowIdx + '-' + type);
+  var btn = document.getElementById('savememo-btn-' + rowIdx + '-' + type);
+  if (!ta) return;
+  var memo = ta.value;
+  if (btn) { btn.textContent = '保存中...'; btn.disabled = true; }
+  _gasPost({action: 'updateMemo', rowIndex: rowIdx, type: type, memo: memo})
+    .then(function(res) {
+      if (res.ok) {
+        allData.forEach(function(p) { if (p.rowIndex === rowIdx && p.type === type) p.memo = memo; });
+        if (btn) {
+          btn.textContent = '✓ 保存しました';
+          setTimeout(function() { btn.textContent = '保存'; btn.disabled = false; }, 1500);
+        }
+      }
+    })
+    .catch(function(e){
+      if (btn) { btn.textContent = '保存'; btn.disabled = false; }
+      alert('エラー: ' + e);
+    });
+}
+
+// ========== 削除キュー ==========
+var _deleteQueue = [];
+var _deleteInProgress = false;
+
+function _processDeleteQueue() {
+  if (_deleteInProgress || _deleteQueue.length === 0) return;
+  _deleteInProgress = true;
+  var job = _deleteQueue.shift();
+  _executeDelete(job.rowIdx, job.type);
+}
+
+function _executeDelete(rowIdx, type) {
+  _gasPost({action: 'deleteRow', rowIndex: rowIdx, type: type})
+    .then(function(res) {
+      if (!res.ok) {
+        alert('削除に失敗しました: ' + (res.msg || ''));
+      } else {
+        _deleteQueue.forEach(function(job) {
+          if (job.type === type && job.rowIdx > rowIdx) job.rowIdx -= 1;
+        });
+        allData.forEach(function(p) {
+          if (p.type === type && p.rowIndex > rowIdx) p.rowIndex -= 1;
+        });
+      }
+      _deleteInProgress = false;
+      _processDeleteQueue();
+    })
+    .catch(function(e){
+      alert('エラー: ' + e);
+      _deleteInProgress = false;
+      _processDeleteQueue();
+    });
+}
+
+function deletePin(rowIdx, btn, type) {
+  if (!btn._confirmMode) {
+    btn._confirmMode = true;
+    btn.textContent = '⚠ 本当に削除しますか？';
+    btn.style.background = '#ea4335';
+    btn.style.color = '#fff';
+    btn._confirmTimer = setTimeout(function() {
+      btn._confirmMode = false;
+      btn.textContent = '🗑 削除';
+      btn.style.background = '#fff';
+      btn.style.color = '#ea4335';
+    }, 3000);
+    return;
+  }
+  clearTimeout(btn._confirmTimer);
+  btn._confirmMode = false;
+  btn.disabled = true;
+  btn.textContent = '削除中...';
+
+  // undoスタックに保存（SH3はaddRowなし対象外）
+  if (type !== 'SH3') {
+    var _delItem = allData.find(function(p){ return p.rowIndex === rowIdx && p.type === type; });
+    if (_delItem) {
+      var _pid = _delItem.placeId || '';
+      _undoStack.push({ item: _delItem, pid: _pid, type: type });
+      _updateUndoBtns();
+    }
+  }
+
+  // UIからマーカーを即座に除去（確認後すぐ消す）
+  var _delKey = type + ':' + rowIdx;
+  allData = allData.filter(function(p){ return !(p.rowIndex === rowIdx && p.type === type); });
+  for (var i = activeMarkers.length - 1; i >= 0; i--) {
+    if (activeMarkers[i]._item.rowIndex === rowIdx && activeMarkers[i]._item.type === type) {
+      activeMarkers[i].setMap(null);
+      activeMarkers.splice(i, 1);
+    }
+  }
+  markerPool.delete(_delKey);
+  infoWindow.close();
+
+  // キューに追加して順番に処理
+  _deleteQueue.push({ rowIdx: rowIdx, type: type });
+  _processDeleteQueue();
+}
+
+// ========== Undo ==========
+function _updateUndoBtns() {
+  var can = _undoStack.length > 0;
+  if (_pcUndoBtn) { _pcUndoBtn.disabled = !can; _pcUndoBtn.style.opacity = can ? '1' : '0.35'; }
+  if (_mUndoBtn)  { _mUndoBtn.disabled  = !can; _mUndoBtn.style.opacity  = can ? '1' : '0.35'; }
+}
+
+function undoLastDelete() {
+  if (_undoStack.length === 0) return;
+  var entry = _undoStack.pop();
+  _updateUndoBtns();
+  var item = entry.item;
+  var type = entry.type;
+
+  var onSuccess = function(res) {
+    if (res.ok) {
+      item.rowIndex = res.rowIndex;
+      allData.push(item);
+      renderMarkers();
+    } else {
+      alert('元に戻せませんでした: ' + (res.msg || ''));
+      _undoStack.push(entry);
+    }
+    _updateUndoBtns();
+  };
+  var onFail = function(e) {
+    alert('エラー: ' + e);
+    _undoStack.push(entry);
+    _updateUndoBtns();
+  };
+
+  var data = Object.assign({ placeId: entry.pid }, item);
+  _gasPost({action: 'addRow', type: type, data: data})
+    .then(onSuccess)
+    .catch(onFail);
+}
+
+function forceReload(btn) {
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+  fetch(CDN_URL + '?t=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      allData = data;
+      dataLoaded = true;
+      clearMarkerPool();
+      updateFilterUI();
+      renderMarkers();
+      if (btn) { btn.textContent = '✓'; setTimeout(function(){ btn.textContent = '🔄'; btn.disabled = false; }, 1500); }
+    })
+    .catch(function(e) {
+      if (btn) { btn.textContent = '🔄'; btn.disabled = false; }
+      alert('再取得失敗: ' + e);
+    });
+}
+
+function getCurrentLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
+      map.setCenter(pos);
+      map.setZoom(14);
+    }, function() {
+      alert('位置情報を取得できませんでした');
+    });
+  } else {
+    alert('このブラウザは位置情報をサポートしていません');
+  }
+}
+
+// 🛰 衛星写真切替
+function toggleSatellite(btn) {
+  if (map.getMapTypeId() === 'roadmap') {
+    map.setMapTypeId('hybrid');
+    btn.style.background = '#1a73e8';
+    btn.style.borderColor = '#1a73e8';
+  } else {
+    map.setMapTypeId('roadmap');
+    btn.style.background = '#fff';
+    btn.style.borderColor = '#ddd';
+  }
+}
+
+// 🔍 検索結果表示
+var _searchMarker = null;
+var _searchPlace  = null;
+
+function showSearchResult(place) {
+  if (!place || !place.geometry) return;
+  map.setCenter(place.geometry.location);
+  if (_searchMarker) _searchMarker.setMap(null);
+  _searchPlace = place;
+  _searchMarker = new google.maps.Marker({
+    position: place.geometry.location,
+    map: map,
+    icon: { path: google.maps.SymbolPath.CIRCLE, scale:10, fillColor:'#ea4335', fillOpacity:1, strokeColor:'#fff', strokeWeight:3 },
+    title: place.name,
+    zIndex: 9999
+  });
+  _searchMarker._isSearchMarker = true;
+  var mapUrl = place.place_id
+    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place.name) + '&query_place_id=' + place.place_id
+    : 'https://www.google.com/maps?q=' + place.geometry.location.lat() + ',' + place.geometry.location.lng();
+  infoWindow.setContent(
+    '<div style="font-size:13px;">' +
+    '<a href="' + mapUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + (place.name||'') + '</a><br>' +
+    '<span style="color:#666;font-size:12px;">' + (place.formatted_address||'') + '</span><br>' +
+    '<button onclick="showAddForm()" style="margin-top:6px;padding:5px 10px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">📌 登録</button>' +
+    '</div>'
+  );
+  infoWindow.open(map, _searchMarker);
+  _searchMarker.addListener('click', function() {
+    _searchMarker.setMap(null);
+    infoWindow.close();
+  });
+}
+
+// 📌 登録フォーム表示
+var SHEET_CATS = {
+  RS: [
+    {label:'🛏️ 宿泊', val:'accommodation'},
+    {label:'♨️ 温泉', val:'hotspring'},
+    {label:'🚿 シャワー', val:'shower'},
+    {label:'🚫 その他', val:'other'}
+  ],
+  RV: [
+    {label:'🛁🔌 入浴＆電源', val:'bathAndPower'},
+    {label:'🛁 入浴のみ', val:'bath'},
+    {label:'🔌 電源のみ', val:'power'},
+    {label:'🚫 その他', val:'other'}
+  ],
+  CS: [
+    {label:'🚘 オートサイト', val:'auto'},
+    {label:'⛺ 非オート', val:'other'}
+  ],
+  OB: [],
+  SH: [],
+  HS: [
+    {label:'スーパー', val:'1'},{label:'日帰り', val:'2'},{label:'銭湯', val:'3'},
+    {label:'日帰り宿', val:'4'},{label:'共同', val:'5'},{label:'スポーツ', val:'6'},
+    {label:'サウナ', val:'7'},{label:'岩盤浴', val:'8'},{label:'足湯', val:'9'},
+    {label:'日帰りP', val:'10'},{label:'自然湯', val:'11'},{label:'デイ', val:'12'},
+    {label:'手湯', val:'13'}
+  ]
+};
+
+function showAddForm() {
+  if (!_searchPlace) return;
+  var place = _searchPlace;
+  var mapUrl = place.place_id
+    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place.name) + '&query_place_id=' + place.place_id
+    : 'https://www.google.com/maps?q=' + place.geometry.location.lat() + ',' + place.geometry.location.lng();
+
+  var sheetOpts =
+    '<option value="">--- シートを選択 ---</option>' +
+    '<option value="RS">🛣️ 道の駅</option>' +
+    '<option value="RV">🚐 RVパーク</option>' +
+    '<option value="CS">🏕️ キャンプ場</option>' +
+    '<option value="OB">🗼 展望台</option>' +
+    '<option value="SH">🚌 車中泊</option>' +
+    '<option value="SH2">🚙 車中泊スポット(SH2)</option>' +
+    '<option value="PA">🅿️ Pエリア</option>' +
+    '<option value="WA">🚰 給水スポット</option>' +
+    '<option value="HS">♨️ 温泉</option>';
+
+  var div = document.createElement('div');
+  div.className = 'add-popup';
+  div.innerHTML =
+    '<a href="' + mapUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + (place.name||'') + '</a><br>' +
+    '<span style="color:#666;font-size:11px;">' + (place.formatted_address||'') + '</span>' +
+    '<hr style="margin:6px 0;border:none;border-top:1px solid #eee;">' +
+    '<select id="reg-sheet-sel" onchange="onRegSheetChange()">' + sheetOpts + '</select>' +
+    '<select id="reg-cat-sel" style="display:none;"></select>' +
+    '<input type="number" id="reg-elevation" placeholder="標高 (m) ※任意" style="display:none;">' +
+    '<input type="text" id="reg-price" placeholder="料金 ※任意" style="display:none;">' +
+    '<input type="text" id="reg-business-hours" placeholder="営業時間 ※任意" style="display:none;">' +
+    '<input type="text" id="reg-closed-day" placeholder="定休日 ※任意" style="display:none;">' +
+    '<input type="text" id="reg-official-url" placeholder="公式URL ※任意" style="display:none;">' +
+    '<input type="text" id="reg-info1" placeholder="料金 ※任意" style="display:none;">' +
+    '<input type="text" id="reg-info" placeholder="情報 ※任意" style="display:none;">' +
+    '<input type="text" id="reg-kind" placeholder="種類 ※任意" style="display:none;">' +
+    '<textarea id="reg-memo" rows="2" placeholder="メモ ※任意" style="display:none;"></textarea>' +
+    '<button class="btn-add" onclick="doAddSpot()">📌 登録する</button>' +
+    '<button class="btn-cancel" onclick="infoWindow.close()">キャンセル</button>';
+
+  infoWindow.setContent(div);
+  infoWindow.open(map, _searchMarker);
+}
+
+function onRegSheetChange() {
+  var sheet = document.getElementById('reg-sheet-sel').value;
+  var catSel = document.getElementById('reg-cat-sel');
+  var elevInput = document.getElementById('reg-elevation');
+  var cats = SHEET_CATS[sheet] || [];
+
+  if (cats.length > 0) {
+    catSel.innerHTML = '<option value="">--- カテゴリを選択 ---</option>' +
+      cats.map(function(c){ return '<option value="' + c.val + '">' + c.label + '</option>'; }).join('');
+    catSel.style.display = 'block';
+  } else {
+    catSel.style.display = 'none';
+    catSel.innerHTML = '';
+  }
+  elevInput.style.display = (sheet && sheet !== 'HS') ? 'block' : 'none';
+
+  // シート別追加フィールドの表示/非表示
+  var showFor = {
+    'reg-price':          ['RV', 'HS'],
+    'reg-business-hours': ['HS'],
+    'reg-closed-day':     ['HS'],
+    'reg-official-url':   ['RS', 'HS', 'CS'],
+    'reg-info1':          ['CS'],
+    'reg-info':           ['OB', 'PA', 'WA'],
+    'reg-kind':           ['SH'],
+    'reg-memo':           ['RS', 'RV', 'HS', 'CS', 'OB', 'SH', 'SH2', 'PA', 'WA']
+  };
+  Object.keys(showFor).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = (sheet && showFor[id].indexOf(sheet) >= 0) ? 'block' : 'none';
+  });
+
+  // OB選択時はreg-infoのプレースホルダーをトイレ距離用に変更
+  var infoEl = document.getElementById('reg-info');
+  if (infoEl) {
+    infoEl.placeholder = (sheet === 'OB') ? '🚻 トイレまでの距離 例: 50m、徒歩2分' : '情報 ※任意';
+  }
+}
+
+function doAddSpot() {
+  var place = _searchPlace;
+  if (!place) return;
+  var sheet = document.getElementById('reg-sheet-sel').value;
+  if (!sheet) { alert('シートを選択してください'); return; }
+
+  var cats = SHEET_CATS[sheet] || [];
+  var category = '';
+  if (cats.length > 0) {
+    category = document.getElementById('reg-cat-sel').value;
+    if (!category) { alert('カテゴリを選択してください'); return; }
+  }
+
+  var elevInput = document.getElementById('reg-elevation');
+  var elevation = elevInput && elevInput.style.display !== 'none' ? elevInput.value : '';
+
+  function _getVal(id) {
+    var el = document.getElementById(id);
+    return (el && el.style.display !== 'none') ? el.value.trim() : '';
+  }
+  var price         = _getVal('reg-price');
+  var businessHours = _getVal('reg-business-hours');
+  var closedDay     = _getVal('reg-closed-day');
+  var officialUrl   = _getVal('reg-official-url');
+  var info1         = _getVal('reg-info1');
+  var info          = _getVal('reg-info');
+  var kind          = _getVal('reg-kind');
+  var memo          = _getVal('reg-memo');
+
+  var btn = document.querySelector('.add-popup .btn-add');
+  if (btn) { btn.disabled = true; btn.textContent = '登録中...'; }
+
+  var hs_catName = '';
+  if (sheet === 'HS') {
+    var found = SHEET_CATS.HS.find(function(c){ return c.val === category; });
+    hs_catName = found ? found.label : '';
+  }
+
+  var mapUrl = place.place_id
+    ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place.name) + '&query_place_id=' + place.place_id
+    : 'https://www.google.com/maps?q=' + place.geometry.location.lat() + ',' + place.geometry.location.lng();
+
+  _gasPost({action: 'addSpot', data: {
+      sheet:         sheet,
+      category:      category,
+      categoryName:  hs_catName,
+      name:          place.name || '',
+      address:       place.formatted_address || '',
+      placeId:       place.place_id || '',
+      lat:           place.geometry.location.lat(),
+      lng:           place.geometry.location.lng(),
+      elevation:     elevation,
+      mapUrl:        mapUrl,
+      price:         price,
+      businessHours: businessHours,
+      closedDay:     closedDay,
+      officialUrl:   officialUrl,
+      info1:         info1,
+      info:          info,
+      kind:          kind,
+      memo:          memo
+    }})
+    .then(function(res) {
+      if (res.ok) {
+        if (btn) { btn.textContent = '✓ 登録しました'; btn.style.background = '#2d8f47'; }
+        if (sheet === 'HS' && category) {
+          filters.HS[parseInt(category)] = true;
+          try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+        } else if (sheet === 'SH' || sheet === 'SH2' || sheet === 'SH3') {
+          if (sheet === 'SH') filters.VAN.SH = true;
+          if (sheet === 'SH2') { filters.VAN.SH2_0 = true; filters.VAN.SH2_1 = true; filters.VAN.SH2_2 = true; }
+          if (sheet === 'SH3') filters.VAN.SH3 = true;
+          try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+        } else if (sheet === 'RS') {
+          filters.RS.accommodation = true; filters.RS.hotspring = true; filters.RS.shower = true; filters.RS.other = true;
+          try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+        }
+        setTimeout(function() {
+          infoWindow.close();
+          if (_searchMarker) { _searchMarker.setMap(null); _searchMarker = null; }
+        }, 1500);
+      } else {
+        if (btn) { btn.disabled = false; btn.textContent = '📌 登録する'; }
+        alert('エラー: ' + (res.msg || ''));
+      }
+    })
+    .catch(function(e) {
+      if (btn) { btn.disabled = false; btn.textContent = '📌 登録する'; }
+      alert('エラー: ' + e);
+    });
+}
+
+// 🔍 テキスト検索実行
+function doSearch(inputEl) {
+  var svc = new google.maps.places.PlacesService(map);
+  svc.findPlaceFromQuery({
+    query: inputEl.value,
+    fields: ['name','place_id','geometry','formatted_address']
+  }, function(results, status) {
+    if (status === google.maps.places.PlacesServiceStatus.OK && results[0]) showSearchResult(results[0]);
+  });
+}
+
+// 🔍 Autocomplete初期化
+function initAutocomplete(inputEl) {
+  var ac = new google.maps.places.Autocomplete(inputEl, {
+    componentRestrictions: {country:'jp'},
+    fields: ['name','place_id','geometry','formatted_address']
+  });
+  ac.addListener('place_changed', function() { showSearchResult(ac.getPlace()); });
+}
+
+window.addEventListener('load', function() {
+  const script = document.createElement('script');
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + MY_API_KEY + '&libraries=places';
+  script.onload = function() {
+    initMap();
+    // PC版
+    var fpSat = document.getElementById('fpSatBtn');
+    fpSat.addEventListener('click', function(){ toggleSatellite(fpSat); });
+    var fpInput = document.getElementById('fpSearchInput');
+    document.getElementById('fpSearchBtn').addEventListener('click', function(){ doSearch(fpInput); });
+    fpInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(fpInput); });
+    initAutocomplete(fpInput);
+    // スマホ版
+    var bsSat = document.getElementById('bsSatBtn');
+    bsSat.addEventListener('click', function(){ toggleSatellite(bsSat); });
+    var bsInput = document.getElementById('bsSearchInput');
+    document.getElementById('bsSearchBtn').addEventListener('click', function(){ doSearch(bsInput); });
+    bsInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(bsInput); });
+    initAutocomplete(bsInput);
+  };
+  document.head.appendChild(script);
+});
+</script>
+<script>
+(function(){var l=document.createElement('link');l.rel='icon';l.type='image/svg+xml';l.href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚐</text></svg>';document.head.appendChild(l);})();
+</script>
+</body>
+</html>
