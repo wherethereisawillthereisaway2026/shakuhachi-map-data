@@ -123,10 +123,12 @@ body{margin:0;padding:0;font-family:sans-serif;}
 @keyframes loadPulse{0%,100%{opacity:1}50%{opacity:.25}}
 .load-dot{width:12px;height:12px;border-radius:50%;background:#bbb;animation:loadPulse 1.2s infinite;flex-shrink:0;align-self:center;cursor:default;}
 .load-dot.done{background:#4caf50;animation:none;}
+#zoom-msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,255,255,0.88);border-radius:10px;padding:14px 24px;font-size:14px;color:#666;box-shadow:0 2px 10px rgba(0,0,0,.15);z-index:1000;pointer-events:none;display:none;}
 </style>
 </head>
 <body>
 <div id="map"></div>
+<div id="zoom-msg">ズームインするとスポットが表示されます</div>
 
 <!-- 🖥️ PC版パネル（左上） -->
 <div class="fp">
@@ -313,7 +315,7 @@ function initMap() {
   const savedLng = localStorage.getItem('mapLng');
 
   // 初期ズーム：初回相互リンク > localStorage > デフォルト
-  const initialZoom = isFirstCrossLink ? _xZ : (savedZoom ? parseInt(savedZoom) : 8);
+  const initialZoom = isFirstCrossLink ? _xZ : (savedZoom ? parseInt(savedZoom) : 5);
   const initialCenter = isFirstCrossLink
     ? { lat: _xLat, lng: _xLng }
     : (savedLat && savedLng)
@@ -1018,13 +1020,18 @@ function getMarkerEmoji(item) {
 }
 
 // ビューポートカリング：差分更新（markerPool再利用）
+var SHOW_ZOOM = 8;
+
 function renderMarkers() {
-  if (map.getZoom() < 12) {
+  var zoom = map.getZoom();
+  if (zoom < SHOW_ZOOM) {
+    document.getElementById('zoom-msg').style.display = 'block';
     markerPool.forEach(function(m) { m.setMap(null); });
     activeMarkers = [];
     updateMarkerCount();
     return;
   }
+  document.getElementById('zoom-msg').style.display = 'none';
 
   var bounds = map.getBounds();
   if (!bounds) return;
