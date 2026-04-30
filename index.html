@@ -39,10 +39,9 @@ body{margin:0;padding:0;font-family:sans-serif;}
   overflow-y:auto;
   box-shadow:0 -2px 8px rgba(0,0,0,.1);
   padding:12px;
-  transition:max-height .3s ease;
   flex:1;
 }
-.bs-body.collapsed{max-height:0;overflow:hidden;padding:0 12px;}
+.bs-wrap.folded .bs-body,.bs-wrap.folded .bs-bottom{display:none;}
 
 /* 共通スタイル */
 .category-section{margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px;}
@@ -178,7 +177,7 @@ body{margin:0;padding:0;font-family:sans-serif;}
   <div class="bs-body" id="bsBody">
     <!-- 各カテゴリのフィルターはここに動的に挿入 -->
   </div>
-  <div style="padding:6px 8px;border-top:1px solid #eee;display:flex;gap:4px;align-items:center;pointer-events:all;background:#fff;">
+  <div class="bs-bottom" style="padding:6px 8px;border-top:1px solid #eee;display:flex;gap:4px;align-items:center;pointer-events:all;background:#fff;">
     <button id="mUndoBtn" onclick="undoLastDelete()" disabled style="padding:7px 8px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;opacity:0.35;" title="削除を元に戻す">↩️</button>
     <button onclick="openOtherMap()" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🎆 祭りマップで見る</button>
     <button onclick="openLightPollutionMap()" style="flex:1;padding:7px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🌃 光害マップ</button>
@@ -779,7 +778,9 @@ function setupEventListeners() {
   });
   
   document.getElementById('bsFoldBtn').addEventListener('click', function() {
-    document.getElementById('bsBody').classList.toggle('collapsed');
+    var wrap = document.querySelector('.bs-wrap');
+    var folded = wrap.classList.toggle('folded');
+    this.textContent = folded ? '＋' : '−';
   });
 
   // 標高フィルター（PC・スマホ共通）
