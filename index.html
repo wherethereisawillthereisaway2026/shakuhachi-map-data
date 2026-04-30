@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>車中泊マップ - 統合版</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚐</text></svg>">
 <style>
@@ -285,11 +286,11 @@ function openLightPollutionMap() {
 function initMap() {
   _pcUndoBtn = document.getElementById('pcUndoBtn');
   _mUndoBtn  = document.getElementById('mUndoBtn');
-  // doGetから注入された相互リンクパラメータを優先チェック
+  // URLパラメータから相互リンク座標を読み込んだ場合は無条件で優先
   var fromLink = typeof _xLat !== 'undefined';
-  // 同タブ内で既に相互リンク座標を適用済みかチェック（リロード時はlocalStorageを優先）
-  var isFirstCrossLink = fromLink && !sessionStorage.getItem('crossLinkApplied');
-  if (isFirstCrossLink) sessionStorage.setItem('crossLinkApplied', '1');
+  var isFirstCrossLink = fromLink;
+  // 適用後はURLをクリーンにしてリロード時の再適用を防ぐ
+  if (isFirstCrossLink) history.replaceState(null, '', window.location.pathname);
 
   // フィルター状態をlocalStorageから復元
   try {
