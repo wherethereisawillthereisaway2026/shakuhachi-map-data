@@ -852,9 +852,6 @@ function updateFilterUI() {
 }
 
 function shouldDisplay(item) {
-  // ズームフィルター（全カテゴリ共通：12未満は非表示）
-  if (map.getZoom() < 12) return false;
-
   // 標高フィルター（HS以外に適用）
   if (elevationFilter > 0 && item.type !== 'HS') {
     var elev = parseFloat(item.elevation);
