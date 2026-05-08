@@ -214,6 +214,7 @@ var markerPool = new Map();   // key: "type:rowIndex" → marker（差分更新�
 var allData = [];
 var idleTimer = null;
 var dataLoaded = false;  // GASからのデータ取得完了フラグ
+var isMaster = (new URLSearchParams(location.search).get('m') === 'ag2026');
 var _undoStack = [];
 var _pcUndoBtn = null;
 var _mUndoBtn = null;
@@ -285,6 +286,10 @@ function openLightPollutionMap() {
 function initMap() {
   _pcUndoBtn = document.getElementById('pcUndoBtn');
   _mUndoBtn  = document.getElementById('mUndoBtn');
+  if (!isMaster) {
+    _pcUndoBtn.style.display = 'none';
+    _mUndoBtn.style.display  = 'none';
+  }
   // URLパラメータから相互リンク座標を読み込んだ場合は無条件で優先
   var fromLink = typeof _xLat !== 'undefined';
   var isFirstCrossLink = fromLink;
@@ -1203,15 +1208,17 @@ function showInfo(item, marker) {
     html += '<span style="color:#666;font-size:12px;">📝 ' + _memoDisplay + '</span><br>';
   }
   var _memoTextarea = _memoRaw.startsWith('http') ? '' : _memoEsc;
-  html += '<hr style="margin:6px 0;border:none;border-top:1px solid #eee;">';
-  html += '<div style="display:flex;gap:4px;">';
-  html += '<button onclick="toggleMemo(' + _rowIdx + ',\'' + _itemType + '\')" style="flex:1;padding:5px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">📝 編集</button>';
-  html += '<button onclick="deletePin(' + _rowIdx + ',this,\'' + _itemType + '\')" style="flex:1;padding:5px;background:#fff;color:#ea4335;border:1.5px solid #ea4335;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🗑 削除</button>';
-  html += '</div>';
-  html += '<div id="memo-area-' + _rowIdx + '-' + _itemType + '" style="display:none;margin-top:4px;">';
-  html += '<textarea id="memo-' + _rowIdx + '-' + _itemType + '" rows="2" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;resize:vertical;">' + _memoTextarea + '</textarea>';
-  html += '<button id="savememo-btn-' + _rowIdx + '-' + _itemType + '" onclick="saveMemo(' + _rowIdx + ',\'' + _itemType + '\')" style="width:100%;padding:5px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">保存</button>';
-  html += '</div>';
+  if (isMaster) {
+    html += '<hr style="margin:6px 0;border:none;border-top:1px solid #eee;">';
+    html += '<div style="display:flex;gap:4px;">';
+    html += '<button onclick="toggleMemo(' + _rowIdx + ',\'' + _itemType + '\')" style="flex:1;padding:5px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">📝 編集</button>';
+    html += '<button onclick="deletePin(' + _rowIdx + ',this,\'' + _itemType + '\')" style="flex:1;padding:5px;background:#fff;color:#ea4335;border:1.5px solid #ea4335;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🗑 削除</button>';
+    html += '</div>';
+    html += '<div id="memo-area-' + _rowIdx + '-' + _itemType + '" style="display:none;margin-top:4px;">';
+    html += '<textarea id="memo-' + _rowIdx + '-' + _itemType + '" rows="2" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;resize:vertical;">' + _memoTextarea + '</textarea>';
+    html += '<button id="savememo-btn-' + _rowIdx + '-' + _itemType + '" onclick="saveMemo(' + _rowIdx + ',\'' + _itemType + '\')" style="width:100%;padding:5px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">保存</button>';
+    html += '</div>';
+  }
 
   html += '</div>';
 
@@ -1432,7 +1439,7 @@ function showSearchResult(place) {
     '<div style="font-size:13px;">' +
     '<a href="' + mapUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + (place.name||'') + '</a><br>' +
     '<span style="color:#666;font-size:12px;">' + (place.formatted_address||'') + '</span><br>' +
-    '<button onclick="showAddForm()" style="margin-top:6px;padding:5px 10px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">📌 登録</button>' +
+    (isMaster ? '<button onclick="showAddForm()" style="margin-top:6px;padding:5px 10px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">📌 登録</button>' : '') +
     '</div>'
   );
   infoWindow.open(map, _searchMarker);
