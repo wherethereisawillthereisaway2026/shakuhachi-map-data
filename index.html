@@ -17,7 +17,7 @@ body{margin:0;padding:0;font-family:sans-serif;}
   position:fixed;bottom:0;left:0;right:0;z-index:1000;
   display:flex;
   flex-direction:column;
-  max-height:70vh;
+  max-height:50vh;
   pointer-events:none;
 }
 .bs-handle{
@@ -167,10 +167,11 @@ body{margin:0;padding:0;font-family:sans-serif;}
   <div class="bs-handle">
     <div class="search-row" style="margin-bottom:4px;">
       <button id="bsBtnLocation" class="sat-btn" style="font-size:13px;">📍現在地</button>
+      <button id="bsSatBtn" class="sat-btn">🛰</button>
       <input type="text" id="bsSearchInput" placeholder="エリア検索">
       <button id="bsSearchBtn" class="s-btn">🔍️</button>
-      <button class="filter-btn" id="bsBtnAll" style="flex-shrink:0;flex:none;padding:5px 8px;white-space:nowrap;font-size:11px;">全選択</button>
-      <button id="bsFoldBtn" class="sat-btn">▽</button>
+      <button class="filter-btn" id="bsBtnAll" style="flex-shrink:0;flex:none;padding:5px 8px;white-space:nowrap;font-size:11px;min-width:3em;text-align:center;">全選択</button>
+      <button id="bsFoldBtn" class="filter-btn" style="flex-shrink:0;flex:none;padding:5px 8px;white-space:nowrap;font-size:11px;min-width:3em;text-align:center;">▽</button>
     </div>
   </div>
   <div class="bs-body" id="bsBody">
@@ -1688,6 +1689,8 @@ window.addEventListener('load', function() {
     fpInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(fpInput); });
     initAutocomplete(fpInput);
     // スマホ版
+    var bsSat = document.getElementById('bsSatBtn');
+    bsSat.addEventListener('click', function(){ toggleSatellite(bsSat); });
     var bsInput = document.getElementById('bsSearchInput');
     document.getElementById('bsSearchBtn').addEventListener('click', function(){ doSearch(bsInput); });
     bsInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(bsInput); });
