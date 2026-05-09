@@ -165,13 +165,12 @@ body{margin:0;padding:0;font-family:sans-serif;}
 <!-- 📱 スマホボトムシート -->
 <div class="bs-wrap">
   <div class="bs-handle">
-    <div class="bs-handle-bar"></div>
     <div class="search-row" style="margin-bottom:4px;">
-      <button id="bsBtnLocation" class="sat-btn">📍</button>
-      <button id="bsSatBtn" class="sat-btn">🛰</button>
-      <input type="text" id="bsSearchInput" placeholder="場所を検索...">
-      <button id="bsSearchBtn" class="s-btn">検索</button>
-      <button id="bsFoldBtn" class="sat-btn">−</button>
+      <button id="bsBtnLocation" class="sat-btn" style="font-size:13px;">📍現在地</button>
+      <input type="text" id="bsSearchInput" placeholder="エリア検索">
+      <button id="bsSearchBtn" class="s-btn">🔍️</button>
+      <button class="filter-btn" id="bsBtnAll" style="flex-shrink:0;flex:none;padding:5px 8px;white-space:nowrap;font-size:11px;">全選択</button>
+      <button id="bsFoldBtn" class="sat-btn">▽</button>
     </div>
   </div>
   <div class="bs-body" id="bsBody">
@@ -785,7 +784,7 @@ function setupEventListeners() {
   document.getElementById('bsFoldBtn').addEventListener('click', function() {
     var wrap = document.querySelector('.bs-wrap');
     var folded = wrap.classList.toggle('folded');
-    this.textContent = folded ? '＋' : '−';
+    this.textContent = folded ? '△' : '▽';
   });
 
   // 標高フィルター（PC・スマホ共通）
@@ -1260,6 +1259,7 @@ var _deleteInProgress = false;
 function _processDeleteQueue() {
   if (_deleteInProgress || _deleteQueue.length === 0) return;
   _deleteInProgress = true;
+  _updateUndoBtns();
   var job = _deleteQueue.shift();
   _executeDelete(job.rowIdx, job.type);
 }
@@ -1276,13 +1276,16 @@ function _executeDelete(rowIdx, type) {
         allData.forEach(function(p) {
           if (p.type === type && p.rowIndex > rowIdx) p.rowIndex -= 1;
         });
+        saveDataCache(allData);
       }
       _deleteInProgress = false;
+      _updateUndoBtns();
       _processDeleteQueue();
     })
     .catch(function(e){
       alert('エラー: ' + e);
       _deleteInProgress = false;
+      _updateUndoBtns();
       _processDeleteQueue();
     });
 }
@@ -1335,7 +1338,7 @@ function deletePin(rowIdx, btn, type) {
 
 // ========== Undo ==========
 function _updateUndoBtns() {
-  var can = _undoStack.length > 0;
+  var can = _undoStack.length > 0 && !_deleteInProgress;
   if (_pcUndoBtn) { _pcUndoBtn.disabled = !can; _pcUndoBtn.style.opacity = can ? '1' : '0.35'; }
   if (_mUndoBtn)  { _mUndoBtn.disabled  = !can; _mUndoBtn.style.opacity  = can ? '1' : '0.35'; }
 }
@@ -1685,8 +1688,6 @@ window.addEventListener('load', function() {
     fpInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(fpInput); });
     initAutocomplete(fpInput);
     // スマホ版
-    var bsSat = document.getElementById('bsSatBtn');
-    bsSat.addEventListener('click', function(){ toggleSatellite(bsSat); });
     var bsInput = document.getElementById('bsSearchInput');
     document.getElementById('bsSearchBtn').addEventListener('click', function(){ doSearch(bsInput); });
     bsInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(bsInput); });
