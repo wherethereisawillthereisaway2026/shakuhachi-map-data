@@ -342,13 +342,10 @@ function initMap() {
     if (event.placeId) {
       // 地図上のPOIタップ → 詳細取得して登録フォームへ
       event.stop();
-      var svc = new google.maps.places.PlacesService(map);
-      svc.getDetails({
-        placeId: event.placeId,
-        fields: ['name', 'place_id', 'geometry', 'formatted_address']
-      }, function(place, status) {
-        if (status === google.maps.places.PlacesServiceStatus.OK) {
-          showSearchResult(place);
+      new google.maps.Geocoder().geocode({placeId: event.placeId}, function(results, status) {
+        if (status === 'OK' && results[0]) {
+          var r = results[0];
+          showSearchResult({geometry: r.geometry, name: r.address_components && r.address_components.length ? r.address_components[0].long_name : r.formatted_address, place_id: r.place_id, formatted_address: r.formatted_address});
         }
       });
     } else {
@@ -1656,45 +1653,61 @@ function doAddSpot() {
     });
 }
 
-// 🔍 テキスト検索実行
-function doSearch(inputEl) {
-  var svc = new google.maps.places.PlacesService(map);
-  svc.findPlaceFromQuery({
-    query: inputEl.value,
-    fields: ['name','place_id','geometry','formatted_address']
-  }, function(results, status) {
-    if (status === google.maps.places.PlacesServiceStatus.OK && results[0]) showSearchResult(results[0]);
-  });
+// 座標文字列パーサー（DMS / 十進数 両対応）
+function _parseCoords(q) {
+  var d = q.match(/(\d+)[°º](\d+)['''′]([0-9.]+)["""″]([NS])[,\s]+(\d+)[°º](\d+)['''′]([0-9.]+)["""″]([EW])/i);
+  if (d) {
+    var lat = +d[1] + +d[2]/60 + +d[3]/3600; if (/S/i.test(d[4])) lat = -lat;
+    var lng = +d[5] + +d[6]/60 + +d[7]/3600; if (/W/i.test(d[8])) lng = -lng;
+    return {lat:lat, lng:lng};
+  }
+  var m = q.match(/^(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)$/);
+  if (m && Math.abs(+m[1]) <= 90 && Math.abs(+m[2]) <= 180) return {lat:+m[1], lng:+m[2]};
+  return null;
 }
 
-// 🔍 Autocomplete初期化
-function initAutocomplete(inputEl) {
-  var ac = new google.maps.places.Autocomplete(inputEl, {
-    componentRestrictions: {country:'jp'},
-    fields: ['name','place_id','geometry','formatted_address']
+// 🔍 テキスト検索実行
+function doSearch(inputEl) {
+  var query = inputEl.value.trim();
+  if (!query) return;
+  var coords = _parseCoords(query);
+  if (coords) {
+    var ll = new google.maps.LatLng(coords.lat, coords.lng);
+    map.setCenter(ll); map.setZoom(16);
+    showSearchResult({geometry:{location:ll}, name:query, place_id:null, formatted_address:coords.lat.toFixed(6)+', '+coords.lng.toFixed(6)});
+    return;
+  }
+  new google.maps.Geocoder().geocode({address: query, region: 'JP'}, function(results, status) {
+    if (status === 'OK' && results[0]) {
+      var r = results[0];
+      showSearchResult({geometry: r.geometry, name: query, place_id: r.place_id, formatted_address: r.formatted_address});
+    } else {
+      alert('検索エラー [' + status + ']\n"' + query + '"');
+    }
   });
-  ac.addListener('place_changed', function() { showSearchResult(ac.getPlace()); });
 }
 
 window.addEventListener('load', function() {
-  const script = document.createElement('script');
+  // 検索リスナーを先に設定
+  var fpInput = document.getElementById('fpSearchInput');
+  var bsInput = document.getElementById('bsSearchInput');
+  document.getElementById('fpSearchBtn').addEventListener('click', function(){ doSearch(fpInput); });
+  fpInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(fpInput); });
+  document.getElementById('bsSearchBtn').addEventListener('click', function(){ doSearch(bsInput); });
+  bsInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(bsInput); });
+
+  var script = document.createElement('script');
   script.src = 'https://maps.googleapis.com/maps/api/js?key=' + MY_API_KEY + '&libraries=places';
   script.onload = function() {
-    initMap();
-    // PC版
-    var fpSat = document.getElementById('fpSatBtn');
-    fpSat.addEventListener('click', function(){ toggleSatellite(fpSat); });
-    var fpInput = document.getElementById('fpSearchInput');
-    document.getElementById('fpSearchBtn').addEventListener('click', function(){ doSearch(fpInput); });
-    fpInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(fpInput); });
-    initAutocomplete(fpInput);
-    // スマホ版
-    var bsSat = document.getElementById('bsSatBtn');
-    bsSat.addEventListener('click', function(){ toggleSatellite(bsSat); });
-    var bsInput = document.getElementById('bsSearchInput');
-    document.getElementById('bsSearchBtn').addEventListener('click', function(){ doSearch(bsInput); });
-    bsInput.addEventListener('keydown', function(e){ if(e.key==='Enter') doSearch(bsInput); });
-    initAutocomplete(bsInput);
+    try {
+      initMap();
+      var fpSat = document.getElementById('fpSatBtn');
+      fpSat.addEventListener('click', function(){ toggleSatellite(fpSat); });
+      var bsSat = document.getElementById('bsSatBtn');
+      bsSat.addEventListener('click', function(){ toggleSatellite(bsSat); });
+    } catch(e) {
+      alert('地図初期化エラー: ' + e.message);
+    }
   };
   document.head.appendChild(script);
 });
