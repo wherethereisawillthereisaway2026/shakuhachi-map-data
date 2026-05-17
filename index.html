@@ -157,6 +157,7 @@ body{margin:0;padding:0;font-family:sans-serif;}
     <button id="pcUndoBtn" onclick="undoLastDelete()" disabled style="padding:6px 8px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;opacity:0.35;" title="削除を元に戻す">↩️</button>
     <button onclick="openOtherMap()" style="flex:1;padding:6px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🎆 祭りマップで見る</button>
     <button onclick="openLightPollutionMap()" style="flex:1;padding:6px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🌃 光害マップ</button>
+    <button id="pcMoonBtn" onclick="openMoonCalendar()" title="月齢カレンダー" style="padding:6px 8px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;"></button>
     <button id="pcReloadBtn" onclick="forceReload(this)" style="padding:6px 8px;background:#fff;color:#f57c00;border:1.5px solid #f57c00;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;" title="DBを直接更新した場合はこちら">🔄</button>
     <div id="pcLoadDot" class="load-dot" title="データ読み込み中..."></div>
   </div>
@@ -181,6 +182,7 @@ body{margin:0;padding:0;font-family:sans-serif;}
     <button id="mUndoBtn" onclick="undoLastDelete()" disabled style="padding:7px 8px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;opacity:0.35;" title="削除を元に戻す">↩️</button>
     <button onclick="openOtherMap()" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🎆 祭りマップで見る</button>
     <button onclick="openLightPollutionMap()" style="flex:1;padding:7px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🌃 光害マップ</button>
+    <button id="mMoonBtn" onclick="openMoonCalendar()" title="月齢カレンダー" style="padding:7px 8px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;"></button>
     <button id="mReloadBtn" onclick="forceReload(this)" style="padding:7px 8px;background:#fff;color:#f57c00;border:1.5px solid #f57c00;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;" title="DBを直接更新した場合はこちら">🔄</button>
     <div id="mLoadDot" class="load-dot" title="データ読み込み中..."></div>
   </div>
@@ -282,10 +284,33 @@ function openLightPollutionMap() {
   var url = 'https://www.lightpollutionmap.info/#zoom=' + zoom + '&lat=' + lat + '&lon=' + lon + '&state=' + state;
   window.open(url, '_blank');
 }
+function getMoonAge() {
+  var known = new Date('2000-01-06T18:14:00Z');
+  var age = (Date.now() - known.getTime()) / 86400000 % 29.530588;
+  return age < 0 ? age + 29.530588 : age;
+}
+function getMoonEmoji(age) {
+  if (age < 1.85)  return '🌑';
+  if (age < 7.38)  return '🌒';
+  if (age < 9.22)  return '🌓';
+  if (age < 14.77) return '🌔';
+  if (age < 16.61) return '🌕';
+  if (age < 22.15) return '🌖';
+  if (age < 23.99) return '🌗';
+  return '🌘';
+}
+function openMoonCalendar() {
+  window.open('https://koyomi8.com/sub/moonage.htm', '_blank');
+}
 
 function initMap() {
   _pcUndoBtn = document.getElementById('pcUndoBtn');
   _mUndoBtn  = document.getElementById('mUndoBtn');
+  var _moonLabel = getMoonEmoji(getMoonAge()) + ' ' + Math.floor(getMoonAge()) + '日';
+  var _pcMoon = document.getElementById('pcMoonBtn');
+  var _mMoon  = document.getElementById('mMoonBtn');
+  if (_pcMoon) _pcMoon.textContent = _moonLabel;
+  if (_mMoon)  _mMoon.textContent  = _moonLabel;
   if (!isMaster) {
     _pcUndoBtn.style.display = 'none';
     _mUndoBtn.style.display  = 'none';
