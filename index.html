@@ -413,10 +413,10 @@ function initMap() {
     if (event.placeId) {
       // 地図上のPOIタップ → 詳細取得して登録フォームへ
       event.stop();
-      new google.maps.Geocoder().geocode({placeId: event.placeId}, function(results, status) {
-        if (status === 'OK' && results[0]) {
-          var r = results[0];
-          showSearchResult({geometry: r.geometry, name: r.address_components && r.address_components.length ? r.address_components[0].long_name : r.formatted_address, place_id: r.place_id, formatted_address: r.formatted_address});
+      var svc = new google.maps.places.PlacesService(map);
+      svc.getDetails({placeId: event.placeId, fields: ['name','geometry','place_id','formatted_address']}, function(place, status) {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          showSearchResult({geometry: place.geometry, name: place.name, place_id: place.place_id, formatted_address: place.formatted_address});
         }
       });
     } else {
