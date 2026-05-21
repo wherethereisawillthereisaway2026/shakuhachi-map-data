@@ -371,7 +371,7 @@ function initMap() {
 
   // フィルター状態をlocalStorageから復元
   try {
-    var savedFilters = localStorage.getItem('mapFilters');
+    var savedFilters = sessionStorage.getItem('mapFilters');
     if (savedFilters) {
       var parsed = JSON.parse(savedFilters);
       // 既知キーのみ上書き（新カテゴリ追加時に壊れないよう防御的にマージ）
@@ -828,6 +828,7 @@ function setupEventListeners() {
       filters.CAMP.auto = false;
       filters.CAMP.other = false;
       
+      filters.VAN.OB = false;
       filters.VAN.SH = false;
       filters.VAN.SH3 = false;
       filters.VAN.PA = false;
@@ -1169,7 +1170,7 @@ function clearActiveMarkers() {
 function updateMarkers() {
   renderMarkers();
   // フィルター状態をlocalStorageに保存（再読み込み後も維持）
-  try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+  try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
 }
 
 function updateMarkerCount() {
@@ -1701,15 +1702,15 @@ function doAddSpot() {
         if (btn) { btn.textContent = '✓ 登録しました'; btn.style.background = '#2d8f47'; }
         if (sheet === 'HS' && category) {
           filters.HS[parseInt(category)] = true;
-          try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+          try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
         } else if (sheet === 'SH' || sheet === 'SH2' || sheet === 'SH3') {
           if (sheet === 'SH') filters.VAN.SH = true;
           if (sheet === 'SH2') { filters.VAN.SH2_0 = true; filters.VAN.SH2_1 = true; filters.VAN.SH2_2 = true; }
           if (sheet === 'SH3') filters.VAN.SH3 = true;
-          try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+          try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
         } else if (sheet === 'RS') {
           filters.RS.accommodation = true; filters.RS.hotspring = true; filters.RS.shower = true; filters.RS.other = true;
-          try { localStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+          try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
         }
         setTimeout(function() {
           infoWindow.close();
