@@ -1780,7 +1780,7 @@ window.addEventListener('load', function() {
       var bsSat = document.getElementById('bsSatBtn');
       bsSat.addEventListener('click', function(){ toggleSatellite(bsSat); });
     } catch(e) {
-      alert('地図初期化エラー: ' + e.message);
+      console.error('地図初期化エラー: ' + e.message);
     }
   };
   document.head.appendChild(script);
