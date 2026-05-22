@@ -1374,7 +1374,7 @@ function _executeDelete(rowIdx, type) {
         allData.forEach(function(p) {
           if (p.type === type && p.rowIndex > rowIdx) p.rowIndex -= 1;
         });
-        saveDataCache(allData);
+
       }
       _deleteInProgress = false;
       _updateUndoBtns();
