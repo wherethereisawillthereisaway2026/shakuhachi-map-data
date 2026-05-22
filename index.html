@@ -1542,6 +1542,11 @@ var SHEET_CATS = {
     {label:'🚘 オートサイト', val:'auto'},
     {label:'⛺ 非オート', val:'other'}
   ],
+  SH2: [
+    {label:'🚙 通常（無料）', val:'2'},
+    {label:'🈶 有料', val:'1'},
+    {label:'⛔ 車中泊NG', val:'0'}
+  ],
   OB: [],
   SH: [],
   HS: [
@@ -1705,7 +1710,12 @@ function doAddSpot() {
           try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
         } else if (sheet === 'SH' || sheet === 'SH2' || sheet === 'SH3') {
           if (sheet === 'SH') filters.VAN.SH = true;
-          if (sheet === 'SH2') { filters.VAN.SH2_0 = true; filters.VAN.SH2_1 = true; filters.VAN.SH2_2 = true; }
+          if (sheet === 'SH2') {
+            var c = parseInt(category);
+            if (c === 0) filters.VAN.SH2_0 = true;
+            else if (c === 1) filters.VAN.SH2_1 = true;
+            else filters.VAN.SH2_2 = true;
+          }
           if (sheet === 'SH3') filters.VAN.SH3 = true;
           try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
         } else if (sheet === 'RS') {
