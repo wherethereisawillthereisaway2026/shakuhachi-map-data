@@ -1286,6 +1286,14 @@ function showInfo(item, marker) {
     html += '<button onclick="deletePin(' + _rowIdx + ',this,\'' + _itemType + '\')" style="flex:1;padding:5px;background:#fff;color:#ea4335;border:1.5px solid #ea4335;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🗑 削除</button>';
     html += '</div>';
     html += '<div id="memo-area-' + _rowIdx + '-' + _itemType + '" style="display:none;margin-top:4px;">';
+    if (item.type === 'SH2') {
+      var _curCat = item.category;
+      html += '<select id="cat-' + _rowIdx + '-SH2" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;margin-bottom:4px;">' +
+        '<option value="2"' + (_curCat === 2 ? ' selected' : '') + '>🚙 通常（無料）</option>' +
+        '<option value="1"' + (_curCat === 1 ? ' selected' : '') + '>🈶 有料</option>' +
+        '<option value="0"' + (_curCat === 0 ? ' selected' : '') + '>⛔ 車中泊NG</option>' +
+        '</select>';
+    }
     html += '<textarea id="memo-' + _rowIdx + '-' + _itemType + '" rows="2" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px;font-size:12px;box-sizing:border-box;resize:vertical;">' + _memoTextarea + '</textarea>';
     html += '<button id="savememo-btn-' + _rowIdx + '-' + _itemType + '" onclick="saveMemo(' + _rowIdx + ',\'' + _itemType + '\')" style="width:100%;padding:5px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">保存</button>';
     html += '</div>';
@@ -1308,10 +1316,28 @@ function saveMemo(rowIdx, type) {
   if (!ta) return;
   var memo = ta.value;
   if (btn) { btn.textContent = '保存中...'; btn.disabled = true; }
-  _gasPost({action: 'updateMemo', rowIndex: rowIdx, type: type, memo: memo})
-    .then(function(res) {
-      if (res.ok) {
-        allData.forEach(function(p) { if (p.rowIndex === rowIdx && p.type === type) p.memo = memo; });
+
+  var catSel = document.getElementById('cat-' + rowIdx + '-SH2');
+  var newCat = catSel ? parseInt(catSel.value, 10) : null;
+
+  var memoPost = _gasPost({action: 'updateMemo', rowIndex: rowIdx, type: type, memo: memo});
+  var catPost = (type === 'SH2' && catSel)
+    ? _gasPost({action: 'updateCategory', rowIndex: rowIdx, category: newCat})
+    : Promise.resolve({ok: true});
+
+  Promise.all([memoPost, catPost])
+    .then(function(results) {
+      if (results[0].ok && results[1].ok) {
+        allData.forEach(function(p) {
+          if (p.rowIndex === rowIdx && p.type === type) {
+            p.memo = memo;
+            if (type === 'SH2' && newCat !== null) {
+              p.category = newCat;
+              var marker = markerPool.get('SH2:' + rowIdx);
+              if (marker) marker.setIcon(createEmojiIcon(getMarkerEmoji(p), getMarkerColor(p)));
+            }
+          }
+        });
         if (btn) {
           btn.textContent = '✓ 保存しました';
           setTimeout(function() { btn.textContent = '保存'; btn.disabled = false; }, 1500);
