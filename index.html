@@ -373,8 +373,12 @@ function initMap() {
   // URLパラメータから相互リンク座標を読み込んだ場合は無条件で優先
   var fromLink = typeof _xLat !== 'undefined';
   var isFirstCrossLink = fromLink;
-  // 適用後はURLをクリーンにしてリロード時の再適用を防ぐ
-  if (isFirstCrossLink) history.replaceState(null, '', window.location.pathname);
+  // 適用後はURLをクリーンにしてリロード時の再適用を防ぐ（?m= は保持）
+  if (isFirstCrossLink) {
+    var _mParam = new URLSearchParams(location.search).get('m');
+    var _cleanUrl = window.location.pathname + (_mParam ? '?m=' + encodeURIComponent(_mParam) : '');
+    history.replaceState(null, '', _cleanUrl);
+  }
 
   // フィルター状態をlocalStorageから復元
   try {
