@@ -228,7 +228,8 @@ var markerPool = new Map();   // key: "type:rowIndex" → marker（差分更新�
 var allData = [];
 var idleTimer = null;
 var dataLoaded = false;  // GASからのデータ取得完了フラグ
-var isMaster = (new URLSearchParams(location.search).get('m') === 'ag2026');
+(function(){ var m = new URLSearchParams(location.search).get('m'); if(m === 'ag2026') localStorage.setItem('masterKey','ag2026'); })();
+var isMaster = (new URLSearchParams(location.search).get('m') === 'ag2026') || (localStorage.getItem('masterKey') === 'ag2026');
 var _undoStack = [];
 var _pcUndoBtn = null;
 var _mUndoBtn = null;
@@ -284,7 +285,7 @@ const MARKER_COLORS = {
 function openMapLink(url) {
   var center = map.getCenter();
   var params = '?lat=' + center.lat().toFixed(5) + '&lng=' + center.lng().toFixed(5) + '&z=' + map.getZoom();
-  var m = new URLSearchParams(location.search).get('m');
+  var m = new URLSearchParams(location.search).get('m') || localStorage.getItem('masterKey');
   if (m) params += '&m=' + encodeURIComponent(m);
   window.location.href = url + params;
 }
