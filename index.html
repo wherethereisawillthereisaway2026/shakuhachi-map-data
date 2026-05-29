@@ -153,15 +153,18 @@ body{margin:0;padding:0;font-family:sans-serif;}
       <option value="1000">1000m以上</option>
     </select>
   </div>
-  <div style="padding:4px 0;display:flex;gap:4px;align-items:center;">
+  <div style="padding:4px 0 2px;display:flex;gap:4px;align-items:center;">
     <button id="pcUndoBtn" onclick="undoLastDelete()" disabled style="padding:6px 8px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;opacity:0.35;" title="削除を元に戻す">↩️</button>
-    <button style="flex:1;padding:6px;background:#1a73e8;color:#fff;border:1.5px solid #1a73e8;border-radius:4px;cursor:default;font-size:12px;font-weight:bold;">🚐車泊</button>
-    <button onclick="openMapLink(FES_MAP_URL)" style="flex:1;padding:6px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🏮祭り</button>
-    <button onclick="openMapLink(FOODS_MAP_URL)" style="flex:1;padding:6px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🍚飯</button>
     <button onclick="openLightPollutionMap()" style="padding:6px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🌃光害</button>
     <button id="pcMoonBtn" onclick="showSunMoonInfo()" title="月齢カレンダー" style="padding:6px 8px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;"></button>
     <button id="pcReloadBtn" onclick="forceReload(this)" style="padding:6px 8px;background:#fff;color:#f57c00;border:1.5px solid #f57c00;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;" title="DBを直接更新した場合はこちら">🔄</button>
     <div id="pcLoadDot" class="load-dot" title="データ読み込み中..."></div>
+  </div>
+  <div style="padding:2px 0 4px;display:flex;gap:4px;align-items:center;">
+    <button style="flex:1;padding:6px;background:#1a73e8;color:#fff;border:1.5px solid #1a73e8;border-radius:4px;cursor:default;font-size:12px;font-weight:bold;">🚐車泊</button>
+    <button onclick="openMapLink(FES_MAP_URL)" style="flex:1;padding:6px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🏮祭り</button>
+    <button onclick="openMapLink(FOODS_MAP_URL)" style="flex:1;padding:6px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🍚飯</button>
+    <button onclick="openMapLink(FERRY_MAP_URL)" style="flex:1;padding:6px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">⚓フェリー</button>
   </div>
 </div>
 
@@ -180,15 +183,18 @@ body{margin:0;padding:0;font-family:sans-serif;}
   <div class="bs-body" id="bsBody">
     <!-- 各カテゴリのフィルターはここに動的に挿入 -->
   </div>
-  <div class="bs-bottom" style="padding:6px 8px;border-top:1px solid #eee;display:flex;gap:4px;align-items:center;pointer-events:all;background:#fff;">
+  <div class="bs-bottom" style="padding:6px 8px 2px;border-top:1px solid #eee;display:flex;gap:4px;align-items:center;pointer-events:all;background:#fff;">
     <button id="mUndoBtn" onclick="undoLastDelete()" disabled style="padding:7px 8px;background:#fff;color:#34a853;border:1.5px solid #34a853;border-radius:4px;cursor:pointer;font-size:14px;font-weight:bold;opacity:0.35;" title="削除を元に戻す">↩️</button>
-    <button style="flex:1;padding:7px;background:#1a73e8;color:#fff;border:1.5px solid #1a73e8;border-radius:4px;cursor:default;font-size:12px;font-weight:bold;">🚐車泊</button>
-    <button onclick="openMapLink(FES_MAP_URL)" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🏮祭り</button>
-    <button onclick="openMapLink(FOODS_MAP_URL)" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🍚飯</button>
     <button onclick="openLightPollutionMap()" style="padding:7px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🌃光害</button>
     <button id="mMoonBtn" onclick="showSunMoonInfo()" title="月齢カレンダー" style="padding:7px 8px;background:#fff;color:#555;border:1.5px solid #aaa;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;"></button>
     <button id="mReloadBtn" onclick="forceReload(this)" style="padding:7px 8px;background:#fff;color:#f57c00;border:1.5px solid #f57c00;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;" title="DBを直接更新した場合はこちら">🔄</button>
     <div id="mLoadDot" class="load-dot" title="データ読み込み中..."></div>
+  </div>
+  <div style="padding:2px 8px 6px;display:flex;gap:4px;align-items:center;pointer-events:all;background:#fff;">
+    <button style="flex:1;padding:7px;background:#1a73e8;color:#fff;border:1.5px solid #1a73e8;border-radius:4px;cursor:default;font-size:12px;font-weight:bold;">🚐車泊</button>
+    <button onclick="openMapLink(FES_MAP_URL)" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🏮祭り</button>
+    <button onclick="openMapLink(FOODS_MAP_URL)" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">🍚飯</button>
+    <button onclick="openMapLink(FERRY_MAP_URL)" style="flex:1;padding:7px;background:#fff;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">⚓フェリー</button>
   </div>
 </div>
 
@@ -198,6 +204,7 @@ var CDN_URL     = 'https://raw.githubusercontent.com/wherethereisawillthereisawa
 var GAS_URL     = 'https://script.google.com/macros/s/AKfycbzAsigVzyCuiBpu97pjzT342023sdAPRVPtRx92fpe-Gzp7J9DQDNAbjfuE3cGnNIOEyg/exec';
 var FES_MAP_URL   = 'https://wherethereisawillthereisaway2026.github.io/matsuri-map-data/';
 var FOODS_MAP_URL = 'https://wherethereisawillthereisaway2026.github.io/foods-map-data/';
+var FERRY_MAP_URL = 'https://wherethereisawillthereisaway2026.github.io/car-ferry-map/';
 
 function _gasPost(payload) {
   return fetch(GAS_URL, {
@@ -279,7 +286,7 @@ function openMapLink(url) {
   var params = '?lat=' + center.lat().toFixed(5) + '&lng=' + center.lng().toFixed(5) + '&z=' + map.getZoom();
   var m = new URLSearchParams(location.search).get('m');
   if (m) params += '&m=' + encodeURIComponent(m);
-  window.open(url + params, '_blank');
+  window.location.href = url + params;
 }
 
 function openLightPollutionMap() {
