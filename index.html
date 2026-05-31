@@ -243,7 +243,7 @@ var filters = {
   RV: { bathAndPower: false, bath: false, power: false, other: false },
   HS: { priceUnder1000: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false },
   CAMP: { auto: false, other: false },
-  VAN: { OB: false, SH: false, SH3: false, PA: false, WA: false, SH2_2: false, SH2_1: false, SH2_0: false }
+  VAN: { OB: false, SH: false, SH3: false, PA: false, WA: false, SH2_2: false, SH2_1: false, SH2_0: false, STAY: false }
 };
 
 // 展望台：トイレ500m以内フィルター
@@ -559,6 +559,7 @@ function buildUI() {
     '<button class="filter-btn" id="fpPA">🅿️Pエリア</button>' +
     '<button class="filter-btn" id="fpSH2_0">⛔車泊NG</button>' +
     '<button class="filter-btn" id="fpWA">🚰給水</button>' +
+    '<button class="filter-btn" id="fpSTAY">🛋️宿泊</button>' +
     '</div></div>';
   
   const bsBody = document.getElementById('bsBody');
@@ -716,7 +717,7 @@ function setupEventListeners() {
   // VAN (車中泊)
   function vanAllOn() {
     return filters.VAN.OB && filters.VAN.SH && filters.VAN.SH3 && filters.VAN.PA && filters.VAN.WA &&
-           filters.VAN.SH2_2 && filters.VAN.SH2_1 && filters.VAN.SH2_0;
+           filters.VAN.SH2_2 && filters.VAN.SH2_1 && filters.VAN.SH2_0 && filters.VAN.STAY;
   }
 
   $btn('VAN_all', function() {
@@ -789,6 +790,13 @@ function setupEventListeners() {
     updateMarkers();
   });
 
+  $btn('STAY', function() {
+    filters.VAN.STAY = !filters.VAN.STAY;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
   // トップメニュー全選択
   $btn('BtnAll', function() {
     isAllSelected = !isAllSelected;
@@ -822,6 +830,7 @@ function setupEventListeners() {
       filters.VAN.SH2_2 = true;
       filters.VAN.SH2_1 = true;
       filters.VAN.SH2_0 = true;
+      filters.VAN.STAY = true;
       categoryAllSelected.VAN = true;
     } else {
       filters.RS.accommodation = false;
@@ -848,6 +857,7 @@ function setupEventListeners() {
       filters.VAN.SH2_2 = false;
       filters.VAN.SH2_1 = false;
       filters.VAN.SH2_0 = false;
+      filters.VAN.STAY = false;
       
       Object.keys(categoryAllSelected).forEach(k => categoryAllSelected[k] = false);
     }
@@ -1025,6 +1035,10 @@ function shouldDisplay(item) {
 
   if (item.type === 'WA') {
     return filters.VAN.WA;
+  }
+
+  if (item.type === 'STAY') {
+    return filters.VAN.STAY;
   }
 
   return false;
