@@ -944,6 +944,7 @@ function updateFilterUI() {
   $tog('SH2_2', filters.VAN.SH2_2);
   $tog('SH2_1', filters.VAN.SH2_1);
   $tog('SH2_0', filters.VAN.SH2_0);
+  $tog('STAY', filters.VAN.STAY);
 
   // 全選択ボタン
   $tog('BtnAll', isAllSelected);
@@ -1117,6 +1118,7 @@ function getMarkerEmoji(item) {
   if (item.type === 'SH3') return '🛺';
   if (item.type === 'PA') return '🅿️';
   if (item.type === 'WA') return '🚰';
+  if (item.type === 'STAY') return '🛋️';
   return '📍';
 }
 
