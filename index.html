@@ -1295,7 +1295,11 @@ function showInfo(item, marker) {
   else if (item.type === 'WA') {
     if (item.info) html += '<div class="info-row"><span class="info-label">情報:</span>' + item.info + '</div>';
   }
-  
+  else if (item.type === 'STAY') {
+    if (item.info) html += '<div class="info-row"><span class="info-label">情報:</span>' + item.info + '</div>';
+    if (item.officialUrl) html += '<div class="links"><div><a href="' + item.officialUrl + '" class="popup-link" target="_blank">公式サイト</a></div></div>';
+  }
+
   var _rowIdx   = item.rowIndex;
   var _itemType = item.type;
   var _memoRaw  = (item.memo || '').trim();
@@ -1675,11 +1679,11 @@ function onRegSheetChange() {
     'reg-price':          ['RV', 'HS'],
     'reg-business-hours': ['HS'],
     'reg-closed-day':     ['HS'],
-    'reg-official-url':   ['RS', 'HS', 'CS'],
+    'reg-official-url':   ['RS', 'HS', 'CS', 'STAY'],
     'reg-info1':          ['CS'],
     'reg-info':           ['OB', 'PA', 'WA'],
     'reg-kind':           ['SH'],
-    'reg-memo':           ['RS', 'RV', 'HS', 'CS', 'OB', 'SH', 'SH2', 'PA', 'WA']
+    'reg-memo':           ['RS', 'RV', 'HS', 'CS', 'OB', 'SH', 'SH2', 'PA', 'WA', 'STAY']
   };
   Object.keys(showFor).forEach(function(id) {
     var el = document.getElementById(id);
