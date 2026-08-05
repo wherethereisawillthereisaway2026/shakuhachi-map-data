@@ -201,6 +201,7 @@ body{margin:0;padding:0;font-family:sans-serif;}
 <script>
 var MY_API_KEY  = "AIzaSyAMBPa_T_URVyJNn1lHnXjzDiEZoKPNPSw";
 var CDN_URL     = 'https://raw.githubusercontent.com/wherethereisawillthereisaway2026/shakuhachi-map-data/main/data.json';
+var PARKING_METER_URL = 'https://raw.githubusercontent.com/wherethereisawillthereisaway2026/shakuhachi-map-data/main/parkingmeter.geojson';
 var GAS_URL     = 'https://script.google.com/macros/s/AKfycbzAsigVzyCuiBpu97pjzT342023sdAPRVPtRx92fpe-Gzp7J9DQDNAbjfuE3cGnNIOEyg/exec';
 var FES_MAP_URL   = 'https://wherethereisawillthereisaway2026.github.io/matsuri-map-data/';
 var FOODS_MAP_URL = 'https://wherethereisawillthereisaway2026.github.io/foods-map-data/';
@@ -236,6 +237,11 @@ var _mUndoBtn = null;
 
 // 標高フィルター（0=指定なし, 500, 1000）
 var elevationFilter = 0;
+
+// パーキングメーター/チケット規制線（警視庁データ）
+var parkingMeterData = null;
+var showParkingMeter = false;
+var PMETER_SHOW_ZOOM = 14;
 
 // フィルター状態管理（初期状態：全解除）
 var filters = {
@@ -441,6 +447,7 @@ function initMap() {
   // ズーム変更時：セッション保存のみ（描画はidleに任せる）
   map.addListener('zoom_changed', function() {
     localStorage.setItem('mapZoom', map.getZoom());
+    updateParkingMeterVisibility();
   });
 
   // 中心変更時にセッション保存
@@ -458,9 +465,62 @@ function initMap() {
   });
   
   loadData();
+  initParkingMeterLayer();
   buildUI();
   setupEventListeners();
   updateFilterUI();
+}
+
+function initParkingMeterLayer() {
+  parkingMeterData = new google.maps.Data({ map: null });
+  parkingMeterData.loadGeoJson(PARKING_METER_URL, null, function() {
+    parkingMeterData.setStyle(function(feature) {
+      var isLimited = !!feature.getProperty('制限事項1');
+      return {
+        strokeColor: isLimited ? '#34a853' : '#1a73e8',
+        strokeWeight: 4,
+        strokeOpacity: 0.85,
+        zIndex: 50,
+        clickable: true
+      };
+    });
+    parkingMeterData.addListener('click', function(event) {
+      showParkingMeterInfo(event.feature, event.latLng);
+    });
+    updateParkingMeterVisibility();
+  });
+}
+
+function updateParkingMeterVisibility() {
+  if (!parkingMeterData) return;
+  var visible = showParkingMeter && map.getZoom() >= PMETER_SHOW_ZOOM;
+  parkingMeterData.setMap(visible ? map : null);
+}
+
+function showParkingMeterInfo(feature, latLng) {
+  var kind = feature.getProperty('種別');
+  var hours = feature.getProperty('利用時間');
+  var limitMin = feature.getProperty('制限時間');
+  var fee = feature.getProperty('手数料');
+  var r1 = feature.getProperty('制限事項1');
+  var r2 = feature.getProperty('制限事項2');
+
+  var html = '<div class="info-popup">';
+  html += '<div class="title">🅿️ ' + kind + '</div>';
+  html += '<div class="info-row"><span class="info-label">利用時間:</span>' + hours + '</div>';
+  html += '<div class="info-row"><span class="info-label">制限時間:</span>' + limitMin + '分（' + fee + '円）</div>';
+  html += '<div class="info-row"><span class="info-label">利用可能日:</span>' + (r1 ? r1 : '日曜・休日を含む毎日') + '</div>';
+  if (r2) html += '<div class="info-row"><span class="info-label">備考:</span>' + r2 + '</div>';
+  html += '<div class="badges">';
+  if (feature.getProperty('普通車')) html += '<span class="badge power">🚗普通車</span>';
+  if (feature.getProperty('貨物用有り')) html += '<span class="badge bath">🚚貨物可</span>';
+  if (feature.getProperty('二輪車')) html += '<span class="badge auto">🏍二輪車</span>';
+  if (feature.getProperty('標章車専用有り')) html += '<span class="badge hotspring">標章車専用有</span>';
+  html += '</div></div>';
+
+  infoWindow.setPosition(latLng);
+  infoWindow.setContent(html);
+  infoWindow.open(map);
 }
 
 function loadData() {
@@ -561,7 +621,14 @@ function buildUI() {
     '<button class="filter-btn" id="fpWA">🚰給水</button>' +
     '<button class="filter-btn" id="fpSTAY">🛋️宿泊</button>' +
     '</div></div>';
-  
+
+  // 駐車規制（警視庁 時間制限駐車区間）
+  fpContent.innerHTML += '<div class="category-section" style="border-top:none;">' +
+    '<div class="category-title"><span class="category-icon">🅿️</span>駐車規制（東京都）</div>' +
+    '<div class="filter-row">' +
+    '<button class="filter-btn" id="fpPMETER">🔵🟢メーター/チケット</button>' +
+    '</div></div>';
+
   const bsBody = document.getElementById('bsBody');
   bsBody.innerHTML = fpContent.innerHTML.replace(/id="fp/g, 'id="bs');
   bsBody.innerHTML += '<div style="font-size:11px;color:#666;padding:6px 0;border-top:1px solid #eee;display:flex;align-items:center;gap:8px;">' +
@@ -797,6 +864,12 @@ function setupEventListeners() {
     updateMarkers();
   });
 
+  $btn('PMETER', function() {
+    showParkingMeter = !showParkingMeter;
+    updateFilterUI();
+    updateParkingMeterVisibility();
+  });
+
   // トップメニュー全選択
   $btn('BtnAll', function() {
     isAllSelected = !isAllSelected;
@@ -945,6 +1018,9 @@ function updateFilterUI() {
   $tog('SH2_1', filters.VAN.SH2_1);
   $tog('SH2_0', filters.VAN.SH2_0);
   $tog('STAY', filters.VAN.STAY);
+
+  // 駐車規制
+  $tog('PMETER', showParkingMeter);
 
   // 全選択ボタン
   $tog('BtnAll', isAllSelected);
