@@ -250,7 +250,7 @@ var PMETER_SHOW_ZOOM = 14;
 var filters = {
   RS: { accommodation: false, hotspring: false, shower: false, other: false },
   RV: { bathAndPower: false, bath: false, power: false, other: false },
-  HS: { priceUnder1000: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false },
+  HS: { priceUnder1000: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 15: false },
   CAMP: { auto: false, other: false },
   VAN: { OB: false, SH: false, SH3: false, PA: false, WA: false, SH2_2: false, SH2_1: false, SH2_0: false, STAY: false }
 };
@@ -274,7 +274,7 @@ var categoryAllSelected = {
 const HS_CATEGORIES = {
   1: 'スーパー', 2: '日帰り', 3: '銭湯', 4: '日帰り宿', 5: '共同',
   6: 'スポーツ', 7: 'サウナ', 8: '岩盤浴', 9: '足湯', 10: '日帰りP',
-  11: '自然湯', 12: 'デイ', 13: '手湯'
+  11: '自然湯', 12: 'デイ', 13: '手湯', 15: '快活CLUB'
 };
 
 // マーカー色定義
@@ -577,9 +577,10 @@ function buildUI() {
     '</div>' +
     '<div class="hs-grid-container">';
   
-  // HS カテゴリボタン（サウナ/岩盤浴/足湯/手湯は別セクションに移動）
+  // HS カテゴリボタン（サウナ/岩盤浴/足湯/手湯は別セクションに移動、14は非表示予約のため除外）
   const HS_SUB_CATS = [7, 8, 9, 13];
-  for (let i = 1; i <= 13; i++) {
+  for (let i = 1; i <= 15; i++) {
+    if (i === 14) continue;
     if (HS_SUB_CATS.indexOf(i) !== -1) continue;
     const categoryName = HS_CATEGORIES[i] || '未定義';
     hsHTML += '<button id="fpHS_' + i + '" class="hs-grid-btn" title="' + categoryName + '">' + categoryName + '</button>';
@@ -733,7 +734,7 @@ function setupEventListeners() {
   });
 
   // HS（全選択はサウナ/岩盤浴/足湯/手湯を除くメインカテゴリのみ。価格フィルターは独立）
-  const HS_MAIN_CATS = [1, 2, 3, 4, 5, 6, 10, 11, 12];
+  const HS_MAIN_CATS = [1, 2, 3, 4, 5, 6, 10, 11, 12, 15];
   $btn('HS_all', function() {
     const allOn = HS_MAIN_CATS.every(i => filters.HS[i]);
     HS_MAIN_CATS.forEach(i => { filters.HS[i] = !allOn; });
@@ -749,7 +750,8 @@ function setupEventListeners() {
     updateMarkers();
   });
 
-  for (let i = 1; i <= 13; i++) {
+  for (let i = 1; i <= 15; i++) {
+    if (i === 14) continue;
     (function(idx) {
       $btn('HS_' + idx, function() {
         filters.HS[idx] = !filters.HS[idx];
@@ -891,7 +893,7 @@ function setupEventListeners() {
       categoryAllSelected.RV = true;
       
       filters.HS.priceUnder1000 = false;
-      for (let i = 1; i <= 13; i++) filters.HS[i] = true;
+      for (let i = 1; i <= 15; i++) { if (i === 14) continue; filters.HS[i] = true; }
       categoryAllSelected.HS = true;
       
       filters.CAMP.auto = true;
@@ -920,8 +922,8 @@ function setupEventListeners() {
       filters.RV.other = false;
       
       filters.HS.priceUnder1000 = false;
-      for (let i = 1; i <= 13; i++) filters.HS[i] = false;
-      
+      for (let i = 1; i <= 15; i++) { if (i === 14) continue; filters.HS[i] = false; }
+
       filters.CAMP.auto = false;
       filters.CAMP.other = false;
       
@@ -997,10 +999,11 @@ function updateFilterUI() {
   $tog('RV_other', filters.RV.other);
 
   // HS（全選択ハイライトはメインカテゴリのみ判定。価格フィルターは独立）
-  const hsAllFiltersOn = [1,2,3,4,5,6,10,11,12].every(i => filters.HS[i]);
+  const hsAllFiltersOn = [1,2,3,4,5,6,10,11,12,15].every(i => filters.HS[i]);
   $tog('HS_all', hsAllFiltersOn);
   $tog('HS_priceUnder1000', filters.HS.priceUnder1000);
-  for (let i = 1; i <= 13; i++) {
+  for (let i = 1; i <= 15; i++) {
+    if (i === 14) continue;
     $tog('HS_' + i, filters.HS[i]);
   }
 
@@ -1691,7 +1694,7 @@ var SHEET_CATS = {
     {label:'日帰り宿', val:'4'},{label:'共同', val:'5'},{label:'スポーツ', val:'6'},
     {label:'サウナ', val:'7'},{label:'岩盤浴', val:'8'},{label:'足湯', val:'9'},
     {label:'日帰りP', val:'10'},{label:'自然湯', val:'11'},{label:'デイ', val:'12'},
-    {label:'手湯', val:'13'}
+    {label:'手湯', val:'13'},{label:'快活CLUB', val:'15'}
   ]
 };
 
