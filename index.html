@@ -214,7 +214,23 @@ function _gasPost(payload) {
   return fetch(GAS_URL, {
     method: 'POST',
     body: JSON.stringify(payload)
-  }).then(function(r) { return r.json(); });
+  }).then(function(r) { return r.json(); })
+    .then(function(res) { _warnExportError(res); return res; });
+}
+
+// GitHubへの書き出し失敗を知らせる（10分に1回まで）
+var _exportWarnAt = 0;
+function _warnExportError(res) {
+  if (!res || !res.exportError) return;
+  if (Date.now() - _exportWarnAt < 10 * 60 * 1000) return;
+  _exportWarnAt = Date.now();
+  alert('シートには保存しましたが、地図データ(GitHub)への書き出しに失敗しています。\n再読み込み後や他の端末には反映されません。\n\n' + res.exportError);
+}
+
+// 行ずれ防止用: 行番号の地点名をGASへ一緒に送る（GAS側でシートの名称と照合）
+function _nameOfRow(rowIdx, type) {
+  var p = allData.find(function(p){ return p.rowIndex === rowIdx && p.type === type; });
+  return p ? p.name : undefined;
 }
 
 // GASのdoGetが注入していた相互リンクパラメータをURLSearchParamsで代替
@@ -1434,9 +1450,10 @@ function saveMemo(rowIdx, type) {
   var catSel = document.getElementById('cat-' + rowIdx + '-SH2');
   var newCat = catSel ? parseInt(catSel.value, 10) : null;
 
-  var memoPost = _gasPost({action: 'updateMemo', rowIndex: rowIdx, type: type, memo: memo});
+  var expectName = _nameOfRow(rowIdx, type);
+  var memoPost = _gasPost({action: 'updateMemo', rowIndex: rowIdx, type: type, memo: memo, expectName: expectName});
   var catPost = (type === 'SH2' && catSel)
-    ? _gasPost({action: 'updateCategory', rowIndex: rowIdx, category: newCat})
+    ? _gasPost({action: 'updateCategory', rowIndex: rowIdx, category: newCat, expectName: expectName})
     : Promise.resolve({ok: true});
 
   Promise.all([memoPost, catPost])
@@ -1456,6 +1473,9 @@ function saveMemo(rowIdx, type) {
           btn.textContent = '✓ 保存しました';
           setTimeout(function() { btn.textContent = '保存'; btn.disabled = false; }, 1500);
         }
+      } else {
+        if (btn) { btn.textContent = '保存'; btn.disabled = false; }
+        alert('保存に失敗しました: ' + ((results[0].ok ? results[1].msg : results[0].msg) || ''));
       }
     })
     .catch(function(e){
@@ -1473,11 +1493,11 @@ function _processDeleteQueue() {
   _deleteInProgress = true;
   _updateUndoBtns();
   var job = _deleteQueue.shift();
-  _executeDelete(job.rowIdx, job.type);
+  _executeDelete(job.rowIdx, job.type, job.name);
 }
 
-function _executeDelete(rowIdx, type) {
-  _gasPost({action: 'deleteRow', rowIndex: rowIdx, type: type})
+function _executeDelete(rowIdx, type, name) {
+  _gasPost({action: 'deleteRow', rowIndex: rowIdx, type: type, expectName: name})
     .then(function(res) {
       if (!res.ok) {
         alert('削除に失敗しました: ' + (res.msg || ''));
@@ -1531,6 +1551,8 @@ function deletePin(rowIdx, btn, type) {
     }
   }
 
+  var _delName = _nameOfRow(rowIdx, type);  // 行ずれ防止用（消す前に控える）
+
   // UIからマーカーを即座に除去（確認後すぐ消す）
   var _delKey = type + ':' + rowIdx;
   allData = allData.filter(function(p){ return !(p.rowIndex === rowIdx && p.type === type); });
@@ -1544,7 +1566,7 @@ function deletePin(rowIdx, btn, type) {
   infoWindow.close();
 
   // キューに追加して順番に処理
-  _deleteQueue.push({ rowIdx: rowIdx, type: type });
+  _deleteQueue.push({ rowIdx: rowIdx, type: type, name: _delName });
   _processDeleteQueue();
 }
 
