@@ -504,8 +504,9 @@ function loadHsUpdated() {
   fetch(CDN_URL.replace('data.json', 'hs_meta.json') + '?t=' + Date.now())
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(m) {
-      var el = document.getElementById('hsUpdated');
-      if (el && m && m.updated) el.textContent = '更新 ' + m.updated;
+      if (!m || !m.updated) return;
+      // PC パネルとスマホ用の複製（bsBody）の両方に出す
+      document.querySelectorAll('.cat-updated').forEach(function(el) { el.textContent = '更新 ' + m.updated; });
     })
     .catch(function() {});
 }
@@ -606,7 +607,7 @@ function buildUI() {
   
   // HS 【修正】価格フィルター追加 + 5列×3段配置
   let hsHTML = '<div class="category-section" style="border-top:none;border-bottom:none;">' +
-    '<div class="category-title"><span class="category-icon">♨️</span>温泉<span id="hsUpdated" class="cat-updated"></span></div>' +
+    '<div class="category-title"><span class="category-icon">♨️</span>温泉<span class="cat-updated"></span></div>' +
     '<div class="filter-row">' +
     '<button class="filter-btn" id="fpHS_all">全選択</button>' +
     '<button class="filter-btn" id="fpHS_priceUnder1000">🔴1000円未満</button>' +
