@@ -1922,6 +1922,12 @@ function doAddSpot() {
           filters.RS.accommodation = true; filters.RS.hotspring = true; filters.RS.shower = true; filters.RS.other = true;
           try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
         }
+        // 登録した地点をすぐ表示（data.json は CDN で最大5分古いため、GAS が返した地点を直接足す）
+        if (res.item && !allData.some(function(p){ return p.type === res.item.type && p.rowIndex === res.item.rowIndex; })) {
+          allData.push(res.item);
+          updateFilterUI();
+          updateMarkers();
+        }
         setTimeout(function() {
           infoWindow.close();
           if (_searchMarker) { _searchMarker.setMap(null); _searchMarker = null; }
