@@ -47,6 +47,7 @@ body{margin:0;padding:0;font-family:sans-serif;}
 .category-section{margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px;}
 .category-title{font-size:13px;font-weight:bold;color:#333;margin-bottom:6px;display:flex;align-items:center;}
 .category-icon{margin-right:4px;font-size:16px;}
+.cat-updated{margin-left:6px;font-size:11px;font-weight:normal;color:#888;}
 
 .filter-label{font-size:10px;font-weight:bold;color:#999;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase;}
 .filter-row{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap;}
@@ -493,8 +494,20 @@ function initMap() {
   loadData();
   initParkingMeterLayer();
   buildUI();
+  loadHsUpdated();
   setupEventListeners();
   updateFilterUI();
+}
+
+// 温泉（ゆるーと）の取り込み日。hs_meta.json は更新スクリプト（yuruto-sync）が書き換える
+function loadHsUpdated() {
+  fetch(CDN_URL.replace('data.json', 'hs_meta.json') + '?t=' + Date.now())
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(m) {
+      var el = document.getElementById('hsUpdated');
+      if (el && m && m.updated) el.textContent = '更新 ' + m.updated;
+    })
+    .catch(function() {});
 }
 
 function initParkingMeterLayer() {
@@ -593,7 +606,7 @@ function buildUI() {
   
   // HS 【修正】価格フィルター追加 + 5列×3段配置
   let hsHTML = '<div class="category-section" style="border-top:none;border-bottom:none;">' +
-    '<div class="category-title"><span class="category-icon">♨️</span>温泉</div>' +
+    '<div class="category-title"><span class="category-icon">♨️</span>温泉<span id="hsUpdated" class="cat-updated"></span></div>' +
     '<div class="filter-row">' +
     '<button class="filter-btn" id="fpHS_all">全選択</button>' +
     '<button class="filter-btn" id="fpHS_priceUnder1000">🔴1000円未満</button>' +
