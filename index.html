@@ -268,7 +268,7 @@ var filters = {
   RV: { bathAndPower: false, bath: false, power: false, other: false },
   HS: { priceUnder1000: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 15: false },
   CAMP: { auto: false, other: false },
-  VAN: { OB: false, SH: false, SH3: false, PA: false, WA: false, SH2_2: false, SH2_1: false, SH2_0: false, STAY: false }
+  VAN: { OB: false, SH: false, SH3: false, PA: false, WA: false, SH2_2: false, SH2_1: false, SH2_0: false, STAY: false, KOHO: false }
 };
 
 // 展望台：トイレ500m以内フィルター
@@ -304,7 +304,8 @@ const MARKER_COLORS = {
   'SH2':  '#BCAAA4',
   'SH3':  '#FFD54F',
   'PA':   '#B0BEC5',
-  'WA':   '#80DEEA'
+  'WA':   '#80DEEA',
+  'KOHO': '#FFF176'
 };
 
 function openMapLink(url) {
@@ -461,6 +462,12 @@ function initMap() {
     } else {
       infoWindow.close();
     }
+  });
+
+  // 何も無い場所を長押し（PCは右クリック）→ 車泊候補などとして登録
+  map.addListener('contextmenu', function(event) {
+    if (!isMaster || !event.latLng) return;
+    showSearchResult({geometry: {location: event.latLng}, name: '', formatted_address: ''});
   });
   
   // ズーム変更時：セッション保存のみ（描画はidleに任せる）
@@ -640,6 +647,7 @@ function buildUI() {
     '<button class="filter-btn" id="fpSH2_0">⛔車泊NG</button>' +
     '<button class="filter-btn" id="fpWA">🚰給水</button>' +
     '<button class="filter-btn" id="fpSTAY">🛋️宿泊</button>' +
+    '<button class="filter-btn" id="fpKOHO">🔖車泊候補</button>' +
     '</div></div>';
 
   // 駐車規制（警視庁 時間制限駐車区間）
@@ -805,7 +813,7 @@ function setupEventListeners() {
   // VAN (車中泊)
   function vanAllOn() {
     return filters.VAN.OB && filters.VAN.SH && filters.VAN.SH3 && filters.VAN.PA && filters.VAN.WA &&
-           filters.VAN.SH2_2 && filters.VAN.SH2_1 && filters.VAN.SH2_0 && filters.VAN.STAY;
+           filters.VAN.SH2_2 && filters.VAN.SH2_1 && filters.VAN.SH2_0 && filters.VAN.STAY && filters.VAN.KOHO;
   }
 
   $btn('VAN_all', function() {
@@ -885,6 +893,13 @@ function setupEventListeners() {
     updateMarkers();
   });
 
+  $btn('KOHO', function() {
+    filters.VAN.KOHO = !filters.VAN.KOHO;
+    categoryAllSelected.VAN = vanAllOn();
+    updateFilterUI();
+    updateMarkers();
+  });
+
   $btn('PMETER', function() {
     showParkingMeter = !showParkingMeter;
     updateFilterUI();
@@ -925,6 +940,7 @@ function setupEventListeners() {
       filters.VAN.SH2_1 = true;
       filters.VAN.SH2_0 = true;
       filters.VAN.STAY = true;
+      filters.VAN.KOHO = true;
       categoryAllSelected.VAN = true;
     } else {
       filters.RS.accommodation = false;
@@ -952,6 +968,7 @@ function setupEventListeners() {
       filters.VAN.SH2_1 = false;
       filters.VAN.SH2_0 = false;
       filters.VAN.STAY = false;
+      filters.VAN.KOHO = false;
       
       Object.keys(categoryAllSelected).forEach(k => categoryAllSelected[k] = false);
     }
@@ -1040,6 +1057,7 @@ function updateFilterUI() {
   $tog('SH2_1', filters.VAN.SH2_1);
   $tog('SH2_0', filters.VAN.SH2_0);
   $tog('STAY', filters.VAN.STAY);
+  $tog('KOHO', filters.VAN.KOHO);
 
   // 駐車規制
   $tog('PMETER', showParkingMeter);
@@ -1140,6 +1158,10 @@ function shouldDisplay(item) {
     return filters.VAN.STAY;
   }
 
+  if (item.type === 'KOHO') {
+    return filters.VAN.KOHO;
+  }
+
   return false;
 }
 
@@ -1217,6 +1239,7 @@ function getMarkerEmoji(item) {
   if (item.type === 'PA') return '🅿️';
   if (item.type === 'WA') return '🚰';
   if (item.type === 'STAY') return '🛋️';
+  if (item.type === 'KOHO') return '🔖';
   return '📍';
 }
 
@@ -1398,6 +1421,10 @@ function showInfo(item, marker) {
   else if (item.type === 'STAY') {
     if (item.info) html += '<div class="info-row"><span class="info-label">情報:</span>' + item.info + '</div>';
     if (item.officialUrl) html += '<div class="links"><div><a href="' + item.officialUrl + '" class="popup-link" target="_blank">公式サイト</a></div></div>';
+  }
+  else if (item.type === 'KOHO') {
+    if (item.elevation) html += '<div class="info-row"><span class="info-label">標高:</span>' + item.elevation + 'm</div>';
+    if (item.addedAt) html += '<div class="info-row"><span class="info-label">登録日:</span>' + item.addedAt + '</div>';
   }
 
   var _rowIdx   = item.rowIndex;
@@ -1674,7 +1701,7 @@ function showSearchResult(place) {
     : 'https://www.google.com/maps?q=' + place.geometry.location.lat() + ',' + place.geometry.location.lng();
   infoWindow.setContent(
     '<div style="font-size:13px;">' +
-    '<a href="' + mapUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + (place.name||'') + '</a><br>' +
+    '<a href="' + mapUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + (place.name||'📍 この地点') + '</a><br>' +
     '<span style="color:#666;font-size:12px;">' + (place.formatted_address||'') + '</span><br>' +
     (isMaster ? '<button onclick="showAddForm()" style="margin-top:6px;padding:5px 10px;background:#34a853;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:bold;">📌 登録</button>' : '') +
     '</div>'
@@ -1738,14 +1765,16 @@ function showAddForm() {
     '<option value="PA">🅿️ Pエリア</option>' +
     '<option value="WA">🚰 給水スポット</option>' +
     '<option value="STAY">🛋️ 宿泊</option>' +
+    '<option value="KOHO">🔖 車泊候補</option>' +
     '<option value="HS">♨️ 温泉</option>';
 
   var div = document.createElement('div');
   div.className = 'add-popup';
   div.innerHTML =
-    '<a href="' + mapUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + (place.name||'') + '</a><br>' +
+    '<a href="' + mapUrl + '" target="_blank" style="color:#1a73e8;font-weight:bold;text-decoration:none;">' + (place.name||'📍 この地点') + '</a><br>' +
     '<span style="color:#666;font-size:11px;">' + (place.formatted_address||'') + '</span>' +
     '<hr style="margin:6px 0;border:none;border-top:1px solid #eee;">' +
+    (place.place_id ? '' : '<input type="text" id="reg-name" value="車泊候補" placeholder="名称">') +
     '<select id="reg-sheet-sel" onchange="onRegSheetChange()">' + sheetOpts + '</select>' +
     '<select id="reg-cat-sel" style="display:none;"></select>' +
     '<input type="number" id="reg-elevation" placeholder="標高 (m) ※任意" style="display:none;">' +
@@ -1760,6 +1789,10 @@ function showAddForm() {
     '<button class="btn-add" onclick="doAddSpot()">📌 登録する</button>' +
     '<button class="btn-cancel" onclick="infoWindow.close()">キャンセル</button>';
 
+  if (!place.place_id) {
+    div.querySelector('#reg-sheet-sel').value = 'KOHO';
+    google.maps.event.addListenerOnce(infoWindow, 'domready', onRegSheetChange);
+  }
   infoWindow.setContent(div);
   infoWindow.open(map, _searchMarker);
 }
@@ -1789,7 +1822,7 @@ function onRegSheetChange() {
     'reg-info1':          ['CS'],
     'reg-info':           ['OB', 'PA', 'WA'],
     'reg-kind':           ['SH'],
-    'reg-memo':           ['RS', 'RV', 'HS', 'CS', 'OB', 'SH', 'SH2', 'PA', 'WA', 'STAY']
+    'reg-memo':           ['RS', 'RV', 'HS', 'CS', 'OB', 'SH', 'SH2', 'PA', 'WA', 'STAY', 'KOHO']
   };
   Object.keys(showFor).forEach(function(id) {
     var el = document.getElementById(id);
@@ -1831,6 +1864,7 @@ function doAddSpot() {
   var info          = _getVal('reg-info');
   var kind          = _getVal('reg-kind');
   var memo          = _getVal('reg-memo');
+  var regName       = _getVal('reg-name');
 
   var btn = document.querySelector('.add-popup .btn-add');
   if (btn) { btn.disabled = true; btn.textContent = '登録中...'; }
@@ -1849,7 +1883,7 @@ function doAddSpot() {
       sheet:         sheet,
       category:      category,
       categoryName:  hs_catName,
-      name:          place.name || '',
+      name:          regName || place.name || '',
       address:       place.formatted_address || '',
       placeId:       place.place_id || '',
       lat:           place.geometry.location.lat(),
@@ -1880,6 +1914,9 @@ function doAddSpot() {
             else filters.VAN.SH2_2 = true;
           }
           if (sheet === 'SH3') filters.VAN.SH3 = true;
+          try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
+        } else if (sheet === 'KOHO') {
+          filters.VAN.KOHO = true;
           try { sessionStorage.setItem('mapFilters', JSON.stringify(filters)); } catch(e) {}
         } else if (sheet === 'RS') {
           filters.RS.accommodation = true; filters.RS.hotspring = true; filters.RS.shower = true; filters.RS.other = true;
