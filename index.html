@@ -1119,7 +1119,9 @@ function shouldDisplay(item) {
     
     if (!hasCategory) return false;
     if (!filters.HS[item.category]) return false;
-    
+    // 快活CLUBはシャワーのある店だけ出す（シートの料金欄が「シャワー無し」「公式掲載なし」の店は隠す）
+    if (item.category === 15 && /シャワー無し|公式掲載なし/.test(item.price)) return false;
+
     // 価格フィルター：priceUnder1000 がONなら、0~999円のデータのみ
     if (filters.HS.priceUnder1000) {
       const priceMatch = item.price.match(/\d+/);
