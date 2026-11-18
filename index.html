@@ -1388,6 +1388,7 @@ function showInfo(item, marker) {
     if (item.price) html += '<div class="info-row"><span class="info-label">料金:</span>' + item.price + '</div>';
     if (item.businessHours) html += '<div class="info-row"><span class="info-label">営業時間:</span>' + item.businessHours + '</div>';
     if (item.closedDay) html += '<div class="info-row"><span class="info-label">定休日:</span>' + item.closedDay + '</div>';
+    if (item.parking) html += '<div class="info-row"><span class="info-label">駐車場:</span>' + item.parking + '</div>';
     if (item.elevation) html += '<div class="info-row">標高: ' + item.elevation + 'm</div>';
     html += '<div class="links">';
     if (item.externalUrl) html += '<div><a href="' + item.externalUrl + '" class="popup-link" target="_blank">外部リンク</a></div>';
