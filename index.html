@@ -1227,7 +1227,8 @@ function getMarkerEmoji(item) {
     if (item.category === 7) return '🧖';
     if (item.category === 8) return '🪨';
     if (item.category === 9 || item.category === 13) return '🦶';
-    return '♨️';
+    var HS_EMOJI = {1:'🏢', 3:'🏮', 4:'🏯', 5:'🛖', 6:'🏊', 10:'🍱', 11:'🏞️', 12:'🏨', 15:'💻'};
+    return HS_EMOJI[item.category] || '♨️';
   }
   if (item.type === 'RS') {
     if (item.accommodation) return '🛏️';
