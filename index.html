@@ -268,7 +268,7 @@ var filters = {
   RS: { accommodation: false, hotspring: false, shower: false, other: false },
   RV: { bathAndPower: false, bath: false, power: false, other: false },
   HS: { priceUnder1000: false, 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false, 9: false, 10: false, 11: false, 12: false, 13: false, 15: false },
-  CAMP: { auto: false, other: false },
+  CAMP: { auto: false, other: false, cand: false },
   VAN: { OB: false, SH: false, SH3: false, PA: false, WA: false, SH2_2: false, SH2_1: false, SH2_0: false, STAY: false, KOHO: false }
 };
 
@@ -644,6 +644,7 @@ function buildUI() {
     '<button class="filter-btn" id="fpCAMP_all">全選択</button>' +
     '<button class="filter-btn" id="fpCAMP_auto">🚘オートサイト</button>' +
     '<button class="filter-btn" id="fpCAMP_other">⛺非オート</button>' +
+    '<button class="filter-btn" id="fpCAMP_cand">🌲候補地</button>' +
     '</div></div>';
   
   // VAN (車中泊 - 展望台等)
@@ -802,9 +803,10 @@ function setupEventListeners() {
 
   // CAMP（キャンプ場）
   $btn('CAMP_all', function() {
-    const allOn = filters.CAMP.auto && filters.CAMP.other;
+    const allOn = filters.CAMP.auto && filters.CAMP.other && filters.CAMP.cand;
     filters.CAMP.auto = !allOn;
     filters.CAMP.other = !allOn;
+    filters.CAMP.cand = !allOn;
     categoryAllSelected.CAMP = !allOn;
     updateFilterUI();
     updateMarkers();
@@ -819,6 +821,13 @@ function setupEventListeners() {
 
   $btn('CAMP_other', function() {
     filters.CAMP.other = !filters.CAMP.other;
+    categoryAllSelected.CAMP = false;
+    updateFilterUI();
+    updateMarkers();
+  });
+
+  $btn('CAMP_cand', function() {
+    filters.CAMP.cand = !filters.CAMP.cand;
     categoryAllSelected.CAMP = false;
     updateFilterUI();
     updateMarkers();
@@ -943,6 +952,7 @@ function setupEventListeners() {
       
       filters.CAMP.auto = true;
       filters.CAMP.other = true;
+      filters.CAMP.cand = true;
       categoryAllSelected.CAMP = true;
       
       filters.VAN.OB = true;
@@ -972,6 +982,7 @@ function setupEventListeners() {
 
       filters.CAMP.auto = false;
       filters.CAMP.other = false;
+      filters.CAMP.cand = false;
       
       filters.VAN.OB = false;
       filters.VAN.SH = false;
@@ -1055,9 +1066,10 @@ function updateFilterUI() {
   }
 
   // CAMP
-  $tog('CAMP_all', filters.CAMP.auto && filters.CAMP.other);
+  $tog('CAMP_all', filters.CAMP.auto && filters.CAMP.other && filters.CAMP.cand);
   $tog('CAMP_auto', filters.CAMP.auto);
   $tog('CAMP_other', filters.CAMP.other);
+  $tog('CAMP_cand', filters.CAMP.cand);
 
   // VAN
   $tog('VAN_all', categoryAllSelected.VAN);
@@ -1134,6 +1146,7 @@ function shouldDisplay(item) {
   }
   
   if (item.type === 'CAMP') {
+    if (isCampCand(item)) return filters.CAMP.cand;
     const hasChecked = filters.CAMP.auto || filters.CAMP.other;
     if (!hasChecked) return false;
     if (filters.CAMP.auto && item.autoSite) return true;
@@ -1220,6 +1233,9 @@ function createEmojiIcon(emoji, bgColor) {
   return icon;
 }
 
+// キャンプ場の候補地: CSシートD列(情報2)が「候補地」で始まる行（例: 候補地B 2026-11確認）
+function isCampCand(item) { return item.type === 'CAMP' && /^候補地/.test(item.info2 || ''); }
+
 function getMarkerColor(item) {
   return MARKER_COLORS[item.type] || '#9E9E9E';
 }
@@ -1244,7 +1260,7 @@ function getMarkerEmoji(item) {
     if (item.power) return '🔌';
     return '🚐';
   }
-  if (item.type === 'CAMP') return item.autoSite ? '🚘' : '⛺';
+  if (item.type === 'CAMP') return isCampCand(item) ? '🌲' : (item.autoSite ? '🚘' : '⛺');
   if (item.type === 'OB') return '🗼';
   if (item.type === 'SH') return '🚌';
   if (item.type === 'SH2') {
@@ -1400,9 +1416,10 @@ function showInfo(item, marker) {
     html += '<div class="badges">';
     if (item.autoSite) html += '<span class="badge auto">🚘 オートサイト</span>';
     if (!item.autoSite) html += '<span class="badge free">⛺ 非オート</span>';
+    if (isCampCand(item)) html += '<span class="badge free">🌲 ' + item.info2 + '</span>';
     html += '</div>';
     if (item.info1) html += '<div class="info-row"><span class="info-label">料金:</span>' + item.info1 + '</div>';
-    if (item.info2) html += '<div class="info-row"><span class="info-label">情報2:</span>' + item.info2 + '</div>';
+    if (item.info2 && !isCampCand(item)) html += '<div class="info-row"><span class="info-label">情報2:</span>' + item.info2 + '</div>';
     if (item.info3) html += '<div class="info-row"><span class="info-label">情報3:</span>' + item.info3 + '</div>';
     if (item.info4) html += '<div class="info-row"><span class="info-label">情報4:</span>' + item.info4 + '</div>';
     if (item.elevation) html += '<div class="info-row">標高: ' + item.elevation + 'm</div>';
