@@ -1198,11 +1198,24 @@ function getMarkerKey(item) {
   return item.type + ':' + item.rowIndex;
 }
 
+// 名前の注記（【…】［…］[…]、日付＋オープン等）を除いた検索用の名前
+function searchName(name) {
+  return String(name || '').replace(/【[^】]*】|［[^］]*］|\[[^\]]*\]/g, ' ')
+    .replace(/\d{4}\.\d{1,2}(\.\d{1,2})?\s*\S*(オープン|リニューアル|閉館予定|移転)\S*/g, ' ')
+    .replace(/\s+/g, ' ').trim();
+}
+
 function getMapUrl(item) {
-  if (item.mapUrl) return item.mapUrl;  // SH / SH3: シート直格納リンク
+  // 座標だけの保存リンク（SH3 など）は使わず、下の「座標付近で名前検索」にする
+  if (item.mapUrl && item.mapUrl.indexOf('maps?q=') === -1) return item.mapUrl;  // SH: シート直格納リンク
+  var nm = searchName(item.name);
   if (item.placeId) {
-    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.name) + '&query_place_id=' + item.placeId;
+    // Place ID で施設を開く。ID が古く見つからないときだけ query（名前＋住所）で検索される
+    var q = nm + (item.address ? ' ' + String(item.address).split(/[\s※]/)[0] : '');
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q) + '&query_place_id=' + item.placeId;
   }
+  // Place ID が無い地点は、その座標の付近で名前を検索して施設の情報を出す
+  if (nm) return 'https://www.google.com/maps/search/' + encodeURIComponent(nm) + '/@' + item.lat + ',' + item.lng + ',17z';
   return 'https://www.google.com/maps?q=' + item.lat + ',' + item.lng;
 }
 
