@@ -1200,7 +1200,8 @@ function getMarkerKey(item) {
 
 // 名前の注記（【…】［…］[…]、日付＋オープン等）を除いた検索用の名前
 function searchName(name) {
-  return String(name || '').replace(/【[^】]*】|［[^］]*］|\[[^\]]*\]/g, ' ')
+  return String(name || '').replace(/<[^>]*>/g, ' ').replace(/（※[^）]*）|\(※[^)]*\)/g, ' ')
+    .replace(/【[^】]*】|［[^］]*］|\[[^\]]*\]/g, ' ')
     .replace(/\d{4}\.\d{1,2}(\.\d{1,2})?\s*\S*(オープン|リニューアル|閉館予定|移転)\S*/g, ' ')
     .replace(/\s+/g, ' ').trim();
 }
